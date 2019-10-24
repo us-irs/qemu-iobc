@@ -676,6 +676,4 @@ config ARMSSE
     select SSE_COUNTER
     select SSE_TIMER
 
-config ISIS_OBC
-    bool
-    default y
+source isis_obc/Kconfig

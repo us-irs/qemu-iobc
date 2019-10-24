@@ -1,0 +1,3 @@
+config ISIS_OBC
+    bool
+    default y
