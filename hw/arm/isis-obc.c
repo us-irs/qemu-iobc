@@ -13,6 +13,104 @@
 #include "cpu.h"
 
 
+#define TYPE_RESERVED_MEMORY_DEVICE "reserved-memory-device"
+
+#define RESERVED_MEMORY_DEVICE(obj) \
+    OBJECT_CHECK(ReservedMemoryDeviceState, (obj), TYPE_RESERVED_MEMORY_DEVICE)
+
+typedef struct {
+    SysBusDevice parent_obj;
+    MemoryRegion iomem;
+    char *name;
+    uint64_t size;
+} ReservedMemoryDeviceState;
+
+static void create_reserved_memory_region(const char* name, hwaddr base, hwaddr size)
+{
+    DeviceState *dev = qdev_create(NULL, TYPE_RESERVED_MEMORY_DEVICE);
+
+    qdev_prop_set_string(dev, "name", name);
+    qdev_prop_set_uint64(dev, "size", size);
+    qdev_init_nofail(dev);
+
+    sysbus_mmio_map_overlap(SYS_BUS_DEVICE(dev), 0, base, -1000);
+}
+
+static uint64_t reserved_memory_read(void *opaque, hwaddr offset, unsigned size)
+{
+    ReservedMemoryDeviceState *s = RESERVED_MEMORY_DEVICE(opaque);
+    MemoryRegion *mem = &s->iomem;
+
+    error_report("invalid memory access to '%s' [0x%08lx + 0x%08lx, r]", mem->name, mem->addr, offset);
+    abort();
+}
+
+static void reserved_memory_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
+{
+    ReservedMemoryDeviceState *s = RESERVED_MEMORY_DEVICE(opaque);
+    MemoryRegion *mem = &s->iomem;
+
+    error_report("invalid memory access to '%s' [0x%08lx + 0x%08lx, r]", mem->name, mem->addr, offset);
+    abort();
+}
+
+static const MemoryRegionOps reserved_memory_ops = {
+    .read = reserved_memory_read,
+    .write = reserved_memory_write,
+    .impl.min_access_size = 1,
+    .impl.max_access_size = 8,
+    .valid.min_access_size = 1,
+    .valid.max_access_size = 8,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+};
+
+static void reserved_memory_device_realize(DeviceState *dev, Error **errp)
+{
+    ReservedMemoryDeviceState *s = RESERVED_MEMORY_DEVICE(dev);
+
+    if (s->size == 0) {
+        error_setg(errp, "property 'size' not specified or zero");
+        return;
+    }
+
+    if (s->name == NULL) {
+        error_setg(errp, "property 'name' not specified");
+        return;
+    }
+
+    memory_region_init_io(&s->iomem, OBJECT(s), &reserved_memory_ops, s, s->name, s->size);
+    sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->iomem);
+}
+
+static Property reserved_memory_device_props[] = {
+    DEFINE_PROP_UINT64("size", ReservedMemoryDeviceState, size, 0),
+    DEFINE_PROP_STRING("name", ReservedMemoryDeviceState, name),
+    DEFINE_PROP_END_OF_LIST(),
+};
+
+static void reserved_memory_device_class_init(ObjectClass *klass, void *data)
+{
+    DeviceClass *dc = DEVICE_CLASS(klass);
+
+    dc->realize = reserved_memory_device_realize;
+    dc->props = reserved_memory_device_props;
+}
+
+static const TypeInfo reserved_memory_device_info = {
+    .name = TYPE_RESERVED_MEMORY_DEVICE,
+    .parent = TYPE_SYS_BUS_DEVICE,
+    .instance_size = sizeof(ReservedMemoryDeviceState),
+    .class_init = reserved_memory_device_class_init,
+};
+
+static void reserved_memory_register_types(void)
+{
+    type_register_static(&reserved_memory_device_info);
+}
+
+type_init(reserved_memory_register_types)
+
+
 static struct arm_boot_info iobc_board_binfo = {
     .loader_start     = 0x00000000,
     .ram_size         = 0x10000000,
@@ -54,11 +152,13 @@ static void iobc_init(MachineState *machine)
     memory_region_add_subregion(address_space_mem, 0x10000000, mem_pflash);
     memory_region_add_subregion(address_space_mem, 0x00000000, mem_internal_boot);
 
+    // reserved memory, accessing this will abort
+    create_reserved_memory_region("iobc.undefined", 0x90000000, 0xF0000000 - 0x90000000);
+
     // currently unimplemented things...
     create_unimplemented_device("iobc.internal.unimp", 0x00100000, 0x10000000 - 0x00100000);
     create_unimplemented_device("iobc.ebi.unimp",      0x30000000, 0x90000000 - 0x30000000);
     create_unimplemented_device("iobc.periph.unimp",   0xF0000000, 0x10000000);
-    create_unimplemented_device("iobc.undefined",      0x90000000, 0xF0000000 - 0x90000000);
 
     // load firmware
     if (bios_name) {
