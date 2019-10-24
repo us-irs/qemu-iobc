@@ -1,2 +1,3 @@
 obj-y += iobc-board.o
 obj-y += iobc-reserved_memory.o
+obj-y += iobc-pmc.o
