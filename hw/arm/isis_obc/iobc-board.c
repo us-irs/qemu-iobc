@@ -10,6 +10,7 @@
 #include "cpu.h"
 
 #include "iobc-reserved_memory.h"
+#include "iobc-pmc.h"
 
 
 static struct arm_boot_info iobc_board_binfo = {
@@ -61,8 +62,8 @@ static void iobc_init(MachineState *machine)
     create_reserved_memory_region("iobc.undefined", 0x90000000, 0xF0000000 - 0x90000000);
     create_reserved_memory_region("iobc.periph.reserved2", 0xFFFFFD60, 0x2A0);
 
-    // TODO: implement PMC device
-    create_unimplemented_device("iobc.periph.pmc",     0xFFFFFC00, 0xFFFFFD00 - 0xFFFFFC00);
+    // peripherals
+    sysbus_create_simple(TYPE_IOBC_PMC, 0xFFFFFC00, NULL);
 
     // currently unimplemented things...
     create_unimplemented_device("iobc.internal.unimp", 0x00100000, 0x10000000 - 0x00100000);

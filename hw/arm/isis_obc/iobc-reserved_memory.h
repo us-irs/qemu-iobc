@@ -5,10 +5,10 @@
 #include "hw/sysbus.h"
 
 
-#define TYPE_IOBC_RESERVED_MEMORY_DEVICE "iobc-reserved_memory-device"
+#define TYPE_IOBC_RESERVED_MEMORY "iobc.memory.reserved"
 
-#define IOBC_RESERVED_MEMORY_DEVICE(obj) \
-    OBJECT_CHECK(ReservedMemoryDeviceState, (obj), TYPE_IOBC_RESERVED_MEMORY_DEVICE)
+#define IOBC_RESERVED_MEMORY(obj) \
+    OBJECT_CHECK(ReservedMemoryDeviceState, (obj), TYPE_IOBC_RESERVED_MEMORY)
 
 typedef struct {
     SysBusDevice parent_obj;
@@ -19,7 +19,7 @@ typedef struct {
 
 inline static void create_reserved_memory_region(const char* name, hwaddr base, hwaddr size)
 {
-    DeviceState *dev = qdev_create(NULL, TYPE_IOBC_RESERVED_MEMORY_DEVICE);
+    DeviceState *dev = qdev_create(NULL, TYPE_IOBC_RESERVED_MEMORY);
 
     qdev_prop_set_string(dev, "name", name);
     qdev_prop_set_uint64(dev, "size", size);
