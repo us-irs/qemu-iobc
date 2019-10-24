@@ -1,14 +1,32 @@
 #include "qemu/osdep.h"
+#include "qemu-common.h"
+#include "qemu/log.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"
 #include "hw/hw.h"
+#include "hw/loader.h"
 #include "hw/boards.h"
+#include "hw/arm/boot.h"
+#include "hw/misc/unimp.h"
+#include "exec/address-spaces.h"
+#include "exec/memory.h"
 #include "cpu.h"
 
 
+static struct arm_boot_info iobc_board_binfo = {
+    .loader_start     = 0x00000000,
+    .ram_size         = 0x10000000,
+    .nb_cpus          = 1,      // TODO
+};
+
 static void iobc_init(MachineState *machine)
 {
-    if (bios_name == NULL) {
+    MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *mem_pflash = g_new(MemoryRegion, 1);
+    MemoryRegion *mem_sdram = g_new(MemoryRegion, 1);
+    MemoryRegion *mem_internal_boot = g_new(MemoryRegion, 1);
+
+    if (!bios_name) {
         warn_report("No firmware specified: Use -bios <file> to load firmware");
     }
 
@@ -23,7 +41,19 @@ static void iobc_init(MachineState *machine)
     /* 0x2000_0000  0x1000_0000  SDRAM              Copied from NOR Flash at boot via hardware */
     /* ...                                                                                     */
 
-    // TODO: actual implementation
+    // ram and flash
+    memory_region_init_ram(mem_pflash, NULL, "iobc.pflash", 0x10000000, &error_fatal);
+    memory_region_init_ram(mem_sdram,  NULL, "iobc.sdram",  0x10000000, &error_fatal);
+
+    // boot memory aliases nor pflash (FIXME: this alias can be changed at runtime)
+    memory_region_init_alias(mem_internal_boot, NULL, "iobc.internal.boot", mem_pflash, 0x00000000, 0x00100000);
+
+    // put it all together
+    memory_region_add_subregion(address_space_mem, 0x20000000, mem_sdram);
+    memory_region_add_subregion(address_space_mem, 0x10000000, mem_pflash);
+    memory_region_add_subregion(address_space_mem, 0x00000000, mem_internal_boot);
+
+    arm_load_kernel(ARM_CPU(cpu_create(machine->cpu_type)), &iobc_board_binfo);
 }
 
 static void iobc_machine_init(MachineClass *mc)
