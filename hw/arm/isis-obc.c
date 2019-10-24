@@ -154,11 +154,14 @@ static void iobc_init(MachineState *machine)
 
     // reserved memory, accessing this will abort
     create_reserved_memory_region("iobc.undefined", 0x90000000, 0xF0000000 - 0x90000000);
+    create_reserved_memory_region("iobc.periph.reserved2", 0xFFFFFD60, 0x2A0);
 
     // currently unimplemented things...
     create_unimplemented_device("iobc.internal.unimp", 0x00100000, 0x10000000 - 0x00100000);
     create_unimplemented_device("iobc.ebi.unimp",      0x30000000, 0x90000000 - 0x30000000);
-    create_unimplemented_device("iobc.periph.unimp",   0xF0000000, 0x10000000);
+    create_unimplemented_device("iobc.periph.unimp1",  0xF0000000, 0xFFFFFC00 - 0xF0000000);
+    create_unimplemented_device("iobc.periph.pmc",     0xFFFFFC00, 0xFFFFFD00 - 0xFFFFFC00);
+    create_unimplemented_device("iobc.periph.unimp2",  0xFFFFFD00, 0xFFFFFD60 - 0xFFFFFD00);
 
     // load firmware
     if (bios_name) {
