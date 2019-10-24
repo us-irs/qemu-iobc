@@ -25,6 +25,7 @@ static void iobc_init(MachineState *machine)
     MemoryRegion *mem_pflash = g_new(MemoryRegion, 1);
     MemoryRegion *mem_sdram = g_new(MemoryRegion, 1);
     MemoryRegion *mem_internal_boot = g_new(MemoryRegion, 1);
+    char *firmware_path;
 
     if (!bios_name) {
         warn_report("No firmware specified: Use -bios <file> to load firmware");
@@ -58,6 +59,30 @@ static void iobc_init(MachineState *machine)
     create_unimplemented_device("iobc.ebi.unimp",      0x30000000, 0x90000000 - 0x30000000);
     create_unimplemented_device("iobc.periph.unimp",   0xF0000000, 0x10000000);
     create_unimplemented_device("iobc.undefined",      0x90000000, 0xF0000000 - 0x90000000);
+
+    // load firmware
+    if (bios_name) {
+        firmware_path = qemu_find_file(QEMU_FILE_TYPE_BIOS, bios_name);
+
+        if (firmware_path) {
+            // load into nor flash (default program store)
+            if (load_image_mr(firmware_path, mem_pflash) < 0) {
+                error_report("Unable to load %s into pflash", bios_name);
+                exit(1);
+            }
+
+            // nor flash gets copied to sdram at boot, thus we load it directly
+            if (load_image_mr(firmware_path, mem_sdram) < 0) {
+                error_report("Unable to load %s into sdram", bios_name);
+                exit(1);
+            }
+
+            g_free(firmware_path);
+        } else {
+            error_report("Unable to find %s", bios_name);
+            exit(1);
+        }
+    }
 
     arm_load_kernel(ARM_CPU(cpu_create(machine->cpu_type)), &iobc_board_binfo);
 }
