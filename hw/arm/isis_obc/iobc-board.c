@@ -22,16 +22,22 @@ static struct arm_boot_info iobc_board_binfo = {
 static void iobc_init(MachineState *machine)
 {
     MemoryRegion *address_space_mem = get_system_memory();
+    MemoryRegion *mem_boot   = g_new(MemoryRegion, 1);
+    MemoryRegion *mem_rom    = g_new(MemoryRegion, 1);
+    MemoryRegion *mem_sram0  = g_new(MemoryRegion, 1);
+    MemoryRegion *mem_sram1  = g_new(MemoryRegion, 1);
     MemoryRegion *mem_pflash = g_new(MemoryRegion, 1);
-    MemoryRegion *mem_sdram = g_new(MemoryRegion, 1);
-    MemoryRegion *mem_internal_boot = g_new(MemoryRegion, 1);
+    MemoryRegion *mem_sdram  = g_new(MemoryRegion, 1);
     char *firmware_path;
 
-    /* Memory Map for AT91SAM9G20                                                              */
+    /* Memory Map for AT91SAM9G20 (current implementation status)                              */
     /*                                                                                         */
     /* start        length       description        notes                                      */
     /* --------------------------------------------------------------------------------------- */
     /* 0x0000_0000  0x0010_0000  Boot Memory        Aliases SDRAMC at boot (set by hardware)   */
+    /* 0x0010_0000  0x0000_8000  Internal ROM                                                  */
+    /* 0x0020_0000  0x0000_4000  Internal SRAM0                                                */
+    /* 0x0030_0000  0x0000_4000  Internal SRAM1                                                */
     /* ...                                                                                     */
     /*                                                                                         */
     /* 0x1000_0000  0x1000_0000  NOR Program Flash  Gets loaded with program code              */
@@ -41,17 +47,24 @@ static void iobc_init(MachineState *machine)
     /* 0xFFFF_FC00  0x0000_0100  PMC                                                           */
     /* ...                                                                                     */
 
-    // ram and flash
+    // rom, ram, and flash
+    memory_region_init_rom(mem_rom,   NULL, "iobc.internal.rom",   0x8000, &error_fatal);
+    memory_region_init_ram(mem_sram0, NULL, "iobc.internal.sram0", 0x4000, &error_fatal);
+    memory_region_init_ram(mem_sram1, NULL, "iobc.internal.sram1", 0x4000, &error_fatal);
+
     memory_region_init_ram(mem_pflash, NULL, "iobc.pflash", 0x10000000, &error_fatal);
     memory_region_init_ram(mem_sdram,  NULL, "iobc.sdram",  0x10000000, &error_fatal);
 
     // boot memory aliases nor pflash (FIXME: this alias can be changed at runtime)
-    memory_region_init_alias(mem_internal_boot, NULL, "iobc.internal.boot", mem_pflash, 0x00000000, 0x00100000);
+    memory_region_init_alias(mem_boot, NULL, "iobc.internal.boot", mem_pflash, 0x00000000, 0x00100000);
 
     // put it all together
-    memory_region_add_subregion(address_space_mem, 0x20000000, mem_sdram);
+    memory_region_add_subregion(address_space_mem, 0x00000000, mem_boot);
+    memory_region_add_subregion(address_space_mem, 0x00100000, mem_rom);
+    memory_region_add_subregion(address_space_mem, 0x00200000, mem_sram0);
+    memory_region_add_subregion(address_space_mem, 0x00300000, mem_sram1);
     memory_region_add_subregion(address_space_mem, 0x10000000, mem_pflash);
-    memory_region_add_subregion(address_space_mem, 0x00000000, mem_internal_boot);
+    memory_region_add_subregion(address_space_mem, 0x20000000, mem_sdram);
 
     // reserved memory, accessing this will abort
     create_reserved_memory_region("iobc.undefined", 0x90000000, 0xF0000000 - 0x90000000);
@@ -69,9 +82,6 @@ static void iobc_init(MachineState *machine)
     sysbus_create_simple(TYPE_IOBC_PMC, 0xFFFFFC00, NULL);
 
     // currently unimplemented things...
-    create_unimplemented_device("iobc.internal.rom",   0x00100000, 0x8000);
-    create_unimplemented_device("iobc.internal.sram0", 0x00200000, 0x4000);
-    create_unimplemented_device("iobc.internal.sram1", 0x00300000, 0x4000);
     create_unimplemented_device("iobc.internal.uhp",   0x00500000, 0x4000);
 
     create_unimplemented_device("iobc.ebi.cs2",        0x30000000, 0x10000000);
