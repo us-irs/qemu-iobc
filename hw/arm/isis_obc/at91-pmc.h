@@ -5,8 +5,8 @@
 #include "hw/sysbus.h"
 
 
-#define TYPE_IOBC_PMC "iobc.peripherals.pmc"
-#define IOBC_PMC(obj) OBJECT_CHECK(PmcState, (obj), TYPE_IOBC_PMC)
+#define TYPE_AT91_PMC "at91-pmc"
+#define AT91_PMC(obj) OBJECT_CHECK(PmcState, (obj), TYPE_AT91_PMC)
 
 
 typedef struct {
