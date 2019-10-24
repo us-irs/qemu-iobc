@@ -1,4 +1,4 @@
-#include "iobc-pmc.h"
+#include "at91-pmc.h"
 #include "qemu/error-report.h"
 
 
@@ -72,22 +72,22 @@ static uint64_t pmc_mmio_read(void *opaque, hwaddr offset, unsigned size)
     unsigned index = offset / 4;
 
     if (size != 0x04) {
-        error_report("iobc.peripherals.pmc illegal read access at "
+        error_report("at91.pmc illegal read access at "
                       "0x%08lx with size: 0x%02x", offset, size);
         abort();
     }
 
     if (offset > 0x80) {
-        error_report("iobc.peripherals.pmc illegal read access at 0x%08lx", offset);
+        error_report("at91.pmc illegal read access at 0x%08lx", offset);
         abort();
     }
 
     if (pmc_reg_access[index] == ACCESS_RESERVED || pmc_reg_access[index] == ACCESS_WO) {
-        error_report("iobc.peripherals.pmc illegal read access at 0x%08lx", offset);
+        error_report("at91.pmc illegal read access at 0x%08lx", offset);
         abort();
     }
 
-    info_report("iobc.peripherals.pmc read 0x%08lx", offset);
+    info_report("at91.pmc read 0x%08lx", offset);
     return s->reg[index];
 }
 
@@ -97,25 +97,25 @@ static void pmc_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned
     unsigned index = offset / 4;
 
     if (size != 0x04) {
-        error_report("iobc.peripherals.pmc illegal write access at "
+        error_report("at91.pmc illegal write access at "
                       "0x%08lx with size: 0x%02x [value: 0x%08lx]",
                       offset, size, value);
         abort();
     }
 
     if (offset > 0x80) {
-        error_report("iobc.peripherals.pmc illegal write access at "
+        error_report("at91.pmc illegal write access at "
                       "0x%08lx [value: 0x%08lx]", offset, value);
         abort();
     }
 
     if (pmc_reg_access[index] == ACCESS_RESERVED || pmc_reg_access[index] == ACCESS_RO) {
-        error_report("iobc.peripherals.pmc illegal write access at "
+        error_report("at91.pmc illegal write access at "
                       "0x%08lx [value: 0x%08lx]", offset, value);
         abort();
     }
 
-    info_report("iobc.peripherals.pmc write 0x%08lx [value: 0x%08lx]", offset, value);
+    info_report("at91.pmc write 0x%08lx [value: 0x%08lx]", offset, value);
     s->reg[index] = value;
 
     // somre register writes have side-effects...
@@ -170,16 +170,16 @@ static void pmc_reset_registers(PmcState *s)
 
 static void pmc_device_realize(DeviceState *dev, Error **errp)
 {
-    PmcState *s = IOBC_PMC(dev);
+    PmcState *s = AT91_PMC(dev);
     pmc_reset_registers(s);
 
-    memory_region_init_io(&s->mmio, OBJECT(s), &pmc_mmio_ops, s, "iobc.peripherals.pmc", 0x100);
+    memory_region_init_io(&s->mmio, OBJECT(s), &pmc_mmio_ops, s, "at91.pmc", 0x100);
     sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->mmio);
 }
 
 static void pmc_device_reset(DeviceState *dev)
 {
-    pmc_reset_registers(IOBC_PMC(dev));
+    pmc_reset_registers(AT91_PMC(dev));
 }
 
 static void pmc_class_init(ObjectClass *klass, void *data)
@@ -191,7 +191,7 @@ static void pmc_class_init(ObjectClass *klass, void *data)
 }
 
 static const TypeInfo pmc_device_info = {
-    .name = TYPE_IOBC_PMC,
+    .name = TYPE_AT91_PMC,
     .parent = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(PmcState),
     .class_init = pmc_class_init,
