@@ -27,10 +27,6 @@ static void iobc_init(MachineState *machine)
     MemoryRegion *mem_internal_boot = g_new(MemoryRegion, 1);
     char *firmware_path;
 
-    if (!bios_name) {
-        warn_report("No firmware specified: Use -bios <file> to load firmware");
-    }
-
     /* Memory Map for AT91SAM9G20                                                              */
     /*                                                                                         */
     /* start        length       description        notes                                      */
@@ -143,6 +139,8 @@ static void iobc_init(MachineState *machine)
             error_report("Unable to find %s", bios_name);
             exit(1);
         }
+    } else {
+        warn_report("No firmware specified: Use -bios <file> to load firmware");
     }
 
     arm_load_kernel(ARM_CPU(cpu_create(machine->cpu_type)), &iobc_board_binfo);
