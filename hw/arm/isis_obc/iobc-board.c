@@ -45,7 +45,6 @@ static void iobc_init(MachineState *machine)
     /* 0xFFFF_FC00  0x0000_0100  PMC                                                           */
     /* ...                                                                                     */
 
-
     // ram and flash
     memory_region_init_ram(mem_pflash, NULL, "iobc.pflash", 0x10000000, &error_fatal);
     memory_region_init_ram(mem_sdram,  NULL, "iobc.sdram",  0x10000000, &error_fatal);
@@ -60,16 +59,67 @@ static void iobc_init(MachineState *machine)
 
     // reserved memory, accessing this will abort
     create_reserved_memory_region("iobc.undefined", 0x90000000, 0xF0000000 - 0x90000000);
-    create_reserved_memory_region("iobc.periph.reserved2", 0xFFFFFD60, 0x2A0);
+    create_reserved_memory_region("iobc.periph.reserved0", 0xF0000000, 0xFFFA0000 - 0xF0000000);
+    create_reserved_memory_region("iobc.periph.reserved1", 0xFFFE4000, 0xFFFFC000 - 0xFFFE4000);
+    create_reserved_memory_region("iobc.periph.reserved2", 0xFFFEC000, 0xFFFFE800 - 0xFFFEC000);
+    create_reserved_memory_region("iobc.periph.reserved3", 0xFFFFFA00, 0xFFFFFC00 - 0xFFFFFA00);
+    create_reserved_memory_region("iobc.periph.reserved4", 0xFFFFFD60, 0x2A0);
+    create_reserved_memory_region("iobc.internal.reserved0", 0x108000, 0x200000 - 0x108000);
+    create_reserved_memory_region("iobc.internal.reserved1", 0x204000, 0x300000 - 0x204000);
+    create_reserved_memory_region("iobc.internal.reserved2", 0x304000, 0x400000 - 0x304000);
+    create_reserved_memory_region("iobc.internal.reserved3", 0x504000, 0x0FFFFFFF - 0x504000);
 
     // peripherals
     sysbus_create_simple(TYPE_IOBC_PMC, 0xFFFFFC00, NULL);
 
     // currently unimplemented things...
-    create_unimplemented_device("iobc.internal.unimp", 0x00100000, 0x10000000 - 0x00100000);
-    create_unimplemented_device("iobc.ebi.unimp",      0x30000000, 0x90000000 - 0x30000000);
-    create_unimplemented_device("iobc.periph.unimp1",  0xF0000000, 0xFFFFFC00 - 0xF0000000);
-    create_unimplemented_device("iobc.periph.unimp2",  0xFFFFFD00, 0xFFFFFD60 - 0xFFFFFD00);
+    create_unimplemented_device("iobc.internal.rom",   0x00100000, 0x8000);
+    create_unimplemented_device("iobc.internal.sram0", 0x00200000, 0x4000);
+    create_unimplemented_device("iobc.internal.sram1", 0x00300000, 0x4000);
+    create_unimplemented_device("iobc.internal.uhp",   0x00500000, 0x4000);
+
+    create_unimplemented_device("iobc.ebi.cs2",        0x30000000, 0x10000000);
+    create_unimplemented_device("iobc.ebi.cs3",        0x40000000, 0x10000000);
+    create_unimplemented_device("iobc.ebi.cs4",        0x50000000, 0x10000000);
+    create_unimplemented_device("iobc.ebi.cs5",        0x60000000, 0x10000000);
+    create_unimplemented_device("iobc.ebi.cs6",        0x70000000, 0x10000000);
+    create_unimplemented_device("iobc.ebi.cs7",        0x80000000, 0x10000000);
+
+    create_unimplemented_device("iobc.periph.tc012",   0xFFFA0000, 0x4000);
+    create_unimplemented_device("iobc.periph.udp",     0xFFFA4000, 0x4000);
+    create_unimplemented_device("iobc.periph.mci",     0xFFFA8000, 0x4000);
+    create_unimplemented_device("iobc.periph.twi",     0xFFFAC000, 0x4000);
+    create_unimplemented_device("iobc.periph.usart0",  0xFFFB0000, 0x4000);
+    create_unimplemented_device("iobc.periph.usart1",  0xFFFB4000, 0x4000);
+    create_unimplemented_device("iobc.periph.usart2",  0xFFFB8000, 0x4000);
+    create_unimplemented_device("iobc.periph.ssc",     0xFFFBC000, 0x4000);
+    create_unimplemented_device("iobc.periph.isi",     0xFFFC0000, 0x4000);
+    create_unimplemented_device("iobc.periph.emac",    0xFFFC4000, 0x4000);
+    create_unimplemented_device("iobc.periph.spi0",    0xFFFC8000, 0x4000);
+    create_unimplemented_device("iobc.periph.spi1",    0xFFFCC000, 0x4000);
+    create_unimplemented_device("iobc.periph.usart3",  0xFFFD0000, 0x4000);
+    create_unimplemented_device("iobc.periph.usart4",  0xFFFD4000, 0x4000);
+    create_unimplemented_device("iobc.periph.usart5",  0xFFFD8000, 0x4000);
+    create_unimplemented_device("iobc.periph.tc345",   0xFFFDC000, 0x4000);
+    create_unimplemented_device("iobc.periph.adc",     0xFFFE0000, 0x4000);
+
+    create_unimplemented_device("iobc.periph.ecc",     0xFFFFE800, 0x200);
+    create_unimplemented_device("iobc.periph.sdramc",  0xFFFFEA00, 0x200);
+    create_unimplemented_device("iobc.periph.smc",     0xFFFFEC00, 0x200);
+    create_unimplemented_device("iobc.periph.matrix",  0xFFFFEE00, 0x200);
+    create_unimplemented_device("iobc.periph.aic",     0xFFFFF000, 0x200);
+    create_unimplemented_device("iobc.periph.dbgu",    0xFFFFF200, 0x200);
+    create_unimplemented_device("iobc.periph.pioa",    0xFFFFF400, 0x200);
+    create_unimplemented_device("iobc.periph.piob",    0xFFFFF600, 0x200);
+    create_unimplemented_device("iobc.periph.pioc",    0xFFFFF800, 0x200);
+
+    create_unimplemented_device("iobc.periph.pmc",     0xFFFFFC00, 0x100);
+    create_unimplemented_device("iobc.periph.rstc",    0xFFFFFD00, 0x10);
+    create_unimplemented_device("iobc.periph.shdwc",   0xFFFFFD10, 0x10);
+    create_unimplemented_device("iobc.periph.rtt",     0xFFFFFD20, 0x10);
+    create_unimplemented_device("iobc.periph.pit",     0xFFFFFD30, 0x10);
+    create_unimplemented_device("iobc.periph.wdt",     0xFFFFFD40, 0x10);
+    create_unimplemented_device("iobc.periph.gpbr",    0xFFFFFD50, 0x10);
 
     // load firmware
     if (bios_name) {
