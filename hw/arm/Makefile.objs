@@ -28,7 +28,6 @@ obj-$(CONFIG_VEXPRESS) += vexpress.o
 obj-$(CONFIG_ZYNQ) += xilinx_zynq.o
 obj-$(CONFIG_SABRELITE) += sabrelite.o
 obj-$(CONFIG_SABRELITE) += sabrelite.o
-obj-$(CONFIG_ISIS_OBC) += isis-obc.o
 
 obj-$(CONFIG_ARM_V7M) += armv7m.o
 obj-$(CONFIG_EXYNOS4) += exynos4210.o
@@ -56,3 +55,5 @@ obj-$(CONFIG_FSL_IMX7) += fsl-imx7.o mcimx7d-sabre.o
 obj-$(CONFIG_ARM_SMMUV3) += smmu-common.o smmuv3.o
 obj-$(CONFIG_FSL_IMX6UL) += fsl-imx6ul.o mcimx6ul-evk.o
 obj-$(CONFIG_NRF51_SOC) += nrf51_soc.o
+
+obj-$(CONFIG_ISIS_OBC) += isis_obc/

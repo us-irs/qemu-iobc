@@ -495,5 +495,4 @@ config ARMSSE_CPUID
 config ARMSSE_MHU
     bool
 
-config ISIS_OBC
-    bool
+source isis_obc/Kconfig
