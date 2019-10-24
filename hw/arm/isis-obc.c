@@ -53,6 +53,12 @@ static void iobc_init(MachineState *machine)
     memory_region_add_subregion(address_space_mem, 0x10000000, mem_pflash);
     memory_region_add_subregion(address_space_mem, 0x00000000, mem_internal_boot);
 
+    // currently unimplemented things...
+    create_unimplemented_device("iobc.internal.unimp", 0x00100000, 0x10000000 - 0x00100000);
+    create_unimplemented_device("iobc.ebi.unimp",      0x30000000, 0x90000000 - 0x30000000);
+    create_unimplemented_device("iobc.periph.unimp",   0xF0000000, 0x10000000);
+    create_unimplemented_device("iobc.undefined",      0x90000000, 0xF0000000 - 0x90000000);
+
     arm_load_kernel(ARM_CPU(cpu_create(machine->cpu_type)), &iobc_board_binfo);
 }
 
