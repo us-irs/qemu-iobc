@@ -1,0 +1,2 @@
+obj-y += iobc-board.o
+obj-y += iobc-reserved_memory.o

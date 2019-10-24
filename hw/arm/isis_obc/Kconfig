@@ -1,0 +1,2 @@
+config ISIS_OBC
+    bool
