@@ -11,6 +11,12 @@
 
 #include "iobc-reserved_memory.h"
 #include "at91-pmc.h"
+#include "at91-dbgu.h"
+
+
+// TODO:
+// - implement at91-dbgu
+// - implement at91-aic
 
 
 static struct arm_boot_info iobc_board_binfo = {
@@ -30,6 +36,8 @@ static void iobc_init(MachineState *machine)
     MemoryRegion *mem_sdram  = g_new(MemoryRegion, 1);
     char *firmware_path;
 
+    DeviceState *tmp;
+
     /* Memory Map for AT91SAM9G20 (current implementation status)                              */
     /*                                                                                         */
     /* start        length       description        notes                                      */
@@ -44,6 +52,8 @@ static void iobc_init(MachineState *machine)
     /* 0x2000_0000  0x1000_0000  SDRAM              Copied from NOR Flash at boot via hardware */
     /* ...                                                                                     */
     /*                                                                                         */
+    /* 0xFFFF_F200  0x0000_0200  Debug Unit (DBGU)                                             */
+    /* ...                                                                                     */
     /* 0xFFFF_FC00  0x0000_0100  PMC                                                           */
     /* ...                                                                                     */
 
@@ -79,7 +89,13 @@ static void iobc_init(MachineState *machine)
     create_reserved_memory_region("iobc.internal.reserved3", 0x504000, 0x0FFFFFFF - 0x504000);
 
     // peripherals
-    sysbus_create_simple(TYPE_AT91_PMC, 0xFFFFFC00, NULL);
+    // FIXME: clean this up (aparently sysbus_create_simple is legacy/deprecated?)
+    tmp = qdev_create(NULL, TYPE_AT91_DBGU);
+    qdev_prop_set_chr(tmp, "chardev", serial_hd(0));
+    qdev_init_nofail(tmp);
+    sysbus_mmio_map(SYS_BUS_DEVICE(tmp), 0, 0xFFFFF200);
+
+    sysbus_create_simple(TYPE_AT91_PMC,  0xFFFFFC00, NULL);
 
     // currently unimplemented things...
     create_unimplemented_device("iobc.internal.uhp",   0x00500000, 0x4000);
@@ -114,7 +130,6 @@ static void iobc_init(MachineState *machine)
     create_unimplemented_device("iobc.periph.smc",     0xFFFFEC00, 0x200);
     create_unimplemented_device("iobc.periph.matrix",  0xFFFFEE00, 0x200);
     create_unimplemented_device("iobc.periph.aic",     0xFFFFF000, 0x200);
-    create_unimplemented_device("iobc.periph.dbgu",    0xFFFFF200, 0x200);
     create_unimplemented_device("iobc.periph.pioa",    0xFFFFF400, 0x200);
     create_unimplemented_device("iobc.periph.piob",    0xFFFFF600, 0x200);
     create_unimplemented_device("iobc.periph.pioc",    0xFFFFF800, 0x200);
