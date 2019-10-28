@@ -4,6 +4,7 @@
 
 
 // TODO(at91.dbgu.chip_id): export chip IDs as properties
+// TODO(at91.dbgu.rxtx): actual implementation respecting baud-rate etc.?
 
 #define IOBC_CIDR       0x00000000      // TODO(at91.dbgu.chip_id)
 #define IOBC_EXID       0x00000000      // TODO(at91.dbgu.chip_id)
@@ -51,7 +52,7 @@ static int dbgu_uart_can_receive(void *opaque)
 {
     DbguState *s = opaque;
 
-    // FIXME(at91.dbgu.recv): What to do here?
+    // FIXME(at91.dbgu.rx): What to do here?
     // - If we always return one, dbgu_uart_receive will set SR_OVRE according
     //   to spec, but we may run into issues if the clocks are not set as in
     //   reality.
@@ -87,7 +88,7 @@ static void dbgu_uart_receive(void *opaque, const uint8_t *buf, int size)
     s->reg_rhr = buf[0];
     s->reg_sr |= SR_RXRDY;
 
-    // TODO(at91.dbgu.pdc):
+    // TODO(at91.dbgu.pdc): implement PDC support (Sec. 23)
     // SPEC: The RXRDY bit triggers the PDC channel data transfer of the
     // receiver. This results in a read of the data in DBGU_RHR.
 
@@ -190,7 +191,7 @@ static void dbgu_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigne
 
     case DBGU_MR:
         s->reg_mr = value;
-        // TODO(at91.dbgu.mr): update mode
+        // TODO(at91.dbgu.rxtx): update mode (CHMODE, parity)?
         break;
 
     case DBGU_IER:
@@ -204,7 +205,7 @@ static void dbgu_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigne
     case DBGU_THR:
         ch = (uint8_t)value;
 
-        // TODO(at91.dbgu.transmit)
+        // TODO(at91.dbgu.rstx): implement shift register
         //
         // SPEC: The transmission starts when the programmer writes in the
         // Transmit Holding Register DBGU_THR, and after the written character
@@ -217,17 +218,22 @@ static void dbgu_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigne
         // SPEC: When both the Shift Register and the DBGU_THR are empty, i.e.,
         // all the characters written in DBGU_THR have been processed, the bit
         // TXEMPTY rises after the last stop bit has been completed.
+        //
+        // Immplementing the shift register is usesless, unless we can handle
+        // the asynchronous nature of this under consideration of the baud
+        // rate.
 
-        // TODO(at91.dbug.pdc):
+        // TODO(at91.dbgu.pdc): implement PDC support (Sec. 23)
         // SPEC: The TXRDY bit triggers the PDC channel data transfer of the
         // transmitter. This results in a write of a data in DBGU_THR.
 
         qemu_chr_fe_write_all(&s->chr, &ch, 1);
+        s->reg_sr |= SR_TXRDY | SR_TXEMPTY;
         break;
 
     case DBGU_BRGR:
         s->reg_brgr = value;
-        // TODO(at91.dbgu.brgr): update baud rate
+        // TODO(at91.dbgu.rxtx): update baud rate
         break;
 
     case DBGU_FNR:
