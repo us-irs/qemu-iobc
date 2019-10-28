@@ -91,7 +91,7 @@ static void dbgu_uart_receive(void *opaque, const uint8_t *buf, int size)
     // SPEC: The RXRDY bit triggers the PDC channel data transfer of the
     // receiver. This results in a read of the data in DBGU_RHR.
 
-    // TODO(at91.dbgu.irq): update interrupts
+    qemu_set_irq(s->irq, !!(s->reg_sr & s->reg_imr));
 }
 
 
@@ -119,7 +119,7 @@ static uint64_t dbgu_mmio_read(void *opaque, hwaddr offset, unsigned size)
 
     case DBGU_RHR:
         s->reg_sr &= ~SR_RXRDY;
-        // TODO(at91.dbgu.irq): update interrupts
+        qemu_set_irq(s->irq, !!(s->reg_sr & s->reg_imr));
         return s->reg_rhr;
 
     case DBGU_BRGR:
@@ -257,7 +257,7 @@ static void dbgu_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigne
         abort();
     }
 
-    // TODO(at91.dbgu.irq): update interrupts
+    qemu_set_irq(s->irq, !!(s->reg_sr & s->reg_imr));
 }
 
 static const MemoryRegionOps dbgu_mmio_ops = {
@@ -290,7 +290,10 @@ static void dbgu_reset_registers(DbguState *s)
 
 static void dbgu_device_init(Object *obj)
 {
+    SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
     DbguState *s = AT91_DBGU(obj);
+
+    sysbus_init_irq(sbd, &s->irq);
 
     memory_region_init_io(&s->mmio, OBJECT(s), &dbgu_mmio_ops, s, "at91.dbgu", 0x200);
     sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->mmio);
