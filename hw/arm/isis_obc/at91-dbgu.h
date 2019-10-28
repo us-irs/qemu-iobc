@@ -13,6 +13,7 @@
 typedef struct {
     SysBusDevice parent_obj;
 
+    qemu_irq irq;
     MemoryRegion mmio;
     CharBackend chr;
 
