@@ -11,8 +11,9 @@
 
 typedef struct {
     SysBusDevice parent_obj;
+
     MemoryRegion mmio;
-    qemu_irq parent_irq;
+    qemu_irq irq;
 
     // registers
     uint32_t reg_pmc_scsr;
