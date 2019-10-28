@@ -74,8 +74,6 @@ static uint64_t pmc_mmio_read(void *opaque, hwaddr offset, unsigned size)
         abort();
     }
 
-    info_report("at91.pmc read 0x%08lx", offset);
-
     switch (offset) {
     case PMC_SCSR:
         return s->reg_pmc_scsr;
@@ -129,8 +127,6 @@ static void pmc_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned
                       offset, size, value);
         abort();
     }
-
-    info_report("at91.pmc write 0x%08lx [value: 0x%08lx]", offset, value);
 
     switch (offset) {
     case PMC_SCER:
