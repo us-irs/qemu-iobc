@@ -3,11 +3,10 @@
 #include "qemu/log.h"
 
 
-// TODO(at91.dbgu.chip_id): export chip IDs as properties
 // TODO(at91.dbgu.rxtx): actual implementation respecting baud-rate etc.?
 
-#define IOBC_CIDR       0x00000000      // TODO(at91.dbgu.chip_id)
-#define IOBC_EXID       0x00000000      // TODO(at91.dbgu.chip_id)
+#define DEFAULT_CIDR    0x00000000      // TODO(at91.dbgu.chip_id): get actual chip id
+#define DEFAULT_EXID    0x00000000      // TODO(at91.dbgu.chip_id): get actual chip exid
 
 #define DBGU_CR         0x00
 #define DBGU_MR         0x04
@@ -269,6 +268,8 @@ static const MemoryRegionOps dbgu_mmio_ops = {
 
 static Property dbgu_device_properties[] = {
     DEFINE_PROP_CHR("chardev", DbguState, chr),
+    DEFINE_PROP_UINT32("cidr", DbguState, reg_cidr, DEFAULT_CIDR),
+    DEFINE_PROP_UINT32("exid", DbguState, reg_exid, DEFAULT_EXID),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -282,9 +283,6 @@ static void dbgu_reset_registers(DbguState *s)
     s->reg_rhr  = 0x00;
     s->reg_brgr = 0x00;
     s->reg_fnr  = 0x00;
-
-    s->reg_cidr = IOBC_CIDR;
-    s->reg_exid = IOBC_EXID;
 
     s->rx_enabled = false;
     s->tx_enabled = false;
