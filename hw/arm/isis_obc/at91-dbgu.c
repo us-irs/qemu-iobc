@@ -1,11 +1,12 @@
 #include "at91-dbgu.h"
 #include "qemu/error-report.h"
+#include "qemu/log.h"
 
 
-// TODO: export chip IDs as properties
+// TODO(at91.dbgu.chip_id): export chip IDs as properties
 
-#define IOBC_CIDR       0x00000000      // TODO
-#define IOBC_EXID       0x00000000      // TODO
+#define IOBC_CIDR       0x00000000      // TODO(at91.dbgu.chip_id)
+#define IOBC_EXID       0x00000000      // TODO(at91.dbgu.chip_id)
 
 #define DBGU_CR         0x00
 #define DBGU_MR         0x04
@@ -20,8 +21,8 @@
 #define DBGU_EXID       0x44
 #define DBGU_FNR        0x48
 
-#define PDC_AREA_OFFS   0x100
-#define PDC_AREA_LEN    0x024
+#define PDC_REG_FIRST  0x100
+#define PDC_REG_LAST   0x124
 
 
 #define CR_RSTRX        (1 << 2)
@@ -32,28 +33,53 @@
 #define CR_TXDIS        (1 << 7)
 #define CR_RSTSTA       (1 << 8)
 
-#define SR_RXRDY        (1 << 0)
-#define SR_TXRDY        (1 << 1)
-#define SR_ENDRX        (1 << 3)
-#define SR_ENDTX        (1 << 4)
-#define SR_OVRE         (1 << 5)
-#define SR_FRAME        (1 << 6)
-#define SR_PARE         (1 << 7)
-#define SR_TXEMPTY      (1 << 9)
-#define SR_TXBUFE       (1 << 11)
-#define SR_RXBUFF       (1 << 12)
-#define SR_COMMTX       (1 << 30)
-#define SR_COMMRX       (1 << 31)
+#define SR_RXRDY        (1 << 0)        // RHR ready to be read
+#define SR_TXRDY        (1 << 1)        // THR ready to be written
+#define SR_ENDRX        (1 << 3)        // PDC: finished receiving (RCR == 0)
+#define SR_ENDTX        (1 << 4)        // PDC: finished transmission (TCR == 0)
+#define SR_OVRE         (1 << 5)        // receiver overrun
+#define SR_FRAME        (1 << 6)        // receiver frame error
+#define SR_PARE         (1 << 7)        // receiver parity error
+#define SR_TXEMPTY      (1 << 9)        // THR and shift register empty (write completed)
+#define SR_TXBUFE       (1 << 11)       // PDC: no more data to transmit (TCR == TNCR == 0)
+#define SR_RXBUFF       (1 << 12)       // PDC: no more data to receive/buffer full (RCR == RNCR == 0)
+#define SR_COMMTX       (1 << 30)       // Forwarded to Core/Debug Comm Channel COMMTX
+#define SR_COMMRX       (1 << 31)       // Forwarded to Core/Debug Comm Channel COMMRX
 
 
 static int dbgu_uart_can_receive(void *opaque)
 {
-    return 1;   // TODO
+    return 1;   // TODO(at91.dbgu.recv)
 }
 
 static void dbgu_uart_receive(void *opaque, const uint8_t *buf, int size)
 {
-    // TODO
+    DbguState *s = opaque;
+
+    if (size > 1) {
+        error_report("at91.dbgu: cannot receive more than one character at a time");
+        abort();
+    }
+
+    if (s->reg_sr & SR_RXRDY) {
+        // SPEC: If DBGU_RHR has not been read by the software (or the
+        // Peripheral Data Controller) since the last transfer, the RXRDY bit
+        // is still set and a new character is received, the OVRE status bit in
+        // DBGU_SR is set.
+        s->reg_sr |= SR_OVRE;
+        return;
+    }
+
+    // SPEC: When a complete character is received, it is transferred to the DBGU_RHR
+    // and the RXRDY status bit in DBGU_SR (Status Register) is set.
+    s->reg_rhr = buf[0];
+    s->reg_sr |= SR_RXRDY;
+
+    // TODO(at91.dbgu.pdc):
+    // SPEC: The RXRDY bit triggers the PDC channel data transfer of the
+    // receiver. This results in a read of the data in DBGU_RHR.
+
+    // TODO(at91.dbgu.irq): update interrupts
 }
 
 
@@ -69,9 +95,6 @@ static uint64_t dbgu_mmio_read(void *opaque, hwaddr offset, unsigned size)
 
     info_report("at91.dbgu read 0x%03lx", offset);
 
-    if (offset >= PDC_AREA_OFFS && offset < PDC_AREA_OFFS + PDC_AREA_LEN) {
-    }
-
     switch (offset) {
     case DBGU_MR:
         return s->reg_mr;
@@ -84,8 +107,7 @@ static uint64_t dbgu_mmio_read(void *opaque, hwaddr offset, unsigned size)
 
     case DBGU_RHR:
         s->reg_sr &= ~SR_RXRDY;
-        // TODO: also clear RXBUFF?
-        // TODO: update interrupts?
+        // TODO(at91.dbgu.irq): update interrupts
         return s->reg_rhr;
 
     case DBGU_BRGR:
@@ -100,9 +122,11 @@ static uint64_t dbgu_mmio_read(void *opaque, hwaddr offset, unsigned size)
     case DBGU_FNR:
         return s->reg_fnr;
 
-    case PDC_AREA_OFFS ... PDC_AREA_OFFS + PDC_AREA_LEN - 1:
-        error_report("at91.dbgu: PDC area is unimplemented");
-        abort();    // TODO: implement PDC support
+    case PDC_REG_FIRST ... PDC_REG_LAST:
+        qemu_log_mask(LOG_UNIMP, "at91.dbgu: unimplemented read from PDC"
+                      "(size %d, offset 0x%" HWADDR_PRIx ")\n",
+                      size, offset);
+        // TODO(at91.dbgu.pdc): implement PDC support (Sec. 23)
 
     default:
         error_report("at91.dbgu illegal read access at 0x%03lx", offset);
@@ -127,11 +151,11 @@ static void dbgu_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigne
     switch (offset) {
     case DBGU_CR:
         if (value & CR_RSTRX) {     // reset and disable receiver
-            // TODO: reset receiver, clear/set buffer flags?
+            s->reg_sr &= ~SR_RXBUFF;
             s->rx_enabled = false;
         }
         if (value & CR_RSTTX) {     // reset and disable transmitter
-            // TODO: reset transmitter, set txrdy|txbufe|txempty?
+            s->reg_sr |= SR_TXEMPTY;
             s->tx_enabled = false;
         }
         if (value & CR_RXEN) {      // enable receiver
@@ -141,6 +165,7 @@ static void dbgu_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigne
             s->rx_enabled = false;
         }
         if (value & CR_TXEN) {      // enable transmitter
+            s->reg_sr |= SR_TXRDY;
             s->tx_enabled = true;
         }
         if (value & CR_TXDIS) {     // disable transmitter (overrides TXDIS)
@@ -153,7 +178,7 @@ static void dbgu_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigne
 
     case DBGU_MR:
         s->reg_mr = value;
-        // TODO: update mode
+        // TODO(at91.dbgu.mr): update mode
         break;
 
     case DBGU_IER:
@@ -166,23 +191,47 @@ static void dbgu_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigne
 
     case DBGU_THR:
         ch = (uint8_t)value;
+
+        // TODO(at91.dbgu.transmit)
+        //
+        // SPEC: The transmission starts when the programmer writes in the
+        // Transmit Holding Register DBGU_THR, and after the written character
+        // is transferred from DBGU_THR to the Shift Register. The bit TXRDY
+        // remains high until a second character is written in DBGU_THR. As
+        // soon as the first character is com- pleted, the last character
+        // written in DBGU_THR is transferred into the shift register and TXRDY
+        // rises again, showing that the holding reg- ister is empty.
+        //
+        // SPEC: When both the Shift Register and the DBGU_THR are empty, i.e.,
+        // all the characters written in DBGU_THR have been processed, the bit
+        // TXEMPTY rises after the last stop bit has been completed.
+
+        // TODO(at91.dbug.pdc):
+        // SPEC: The TXRDY bit triggers the PDC channel data transfer of the
+        // transmitter. This results in a write of a data in DBGU_THR.
+
         qemu_chr_fe_write_all(&s->chr, &ch, 1);
-        // TODO: initiate transmission, set TXEMPTY when done
         break;
 
     case DBGU_BRGR:
         s->reg_brgr = value;
-        // TODO: update baud rate
+        // TODO(at91.dbgu.brgr): update baud rate
         break;
 
     case DBGU_FNR:
         s->reg_fnr = value;
-        warn_report("at91.dbgu: FNR register writes not implemented");
+        qemu_log_mask(LOG_UNIMP, "at91.dbgu: unimplemented write to FNR"
+                      "(size %d, value 0x%" PRIx64
+                      ", offset 0x%" HWADDR_PRIx ")\n",
+                      size, value, offset);
         break;
 
-    case PDC_AREA_OFFS ... PDC_AREA_OFFS + PDC_AREA_LEN - 1:
-        error_report("at91.dbgu: PDC area is unimplemented");
-        // TODO: implement PDC support
+    case PDC_REG_FIRST ... PDC_REG_LAST:
+        qemu_log_mask(LOG_UNIMP, "at91.dbgu: unimplemented write to PDC"
+                      "(size %d, value 0x%" PRIx64
+                      ", offset 0x%" HWADDR_PRIx ")\n",
+                      size, value, offset);
+        // TODO(at91.dbgu.pdc): implement PDC support (Sec. 23)
         break;
 
     default:
@@ -191,7 +240,7 @@ static void dbgu_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigne
         abort();
     }
 
-    // TODO: update interrupts?
+    // TODO(at91.dbgu.irq): update interrupts
 }
 
 static const MemoryRegionOps dbgu_mmio_ops = {
@@ -207,8 +256,8 @@ static Property dbgu_device_properties[] = {
 
 static void dbgu_reset_registers(DbguState *s)
 {
-    // indicate transmitter ready
-    s->reg_sr = SR_TXRDY | SR_TXBUFE | SR_TXEMPTY;
+    // indicate shift register and THR empty
+    s->reg_sr = SR_TXEMPTY;
 
     s->reg_mr   = 0x00;
     s->reg_imr  = 0x00;
