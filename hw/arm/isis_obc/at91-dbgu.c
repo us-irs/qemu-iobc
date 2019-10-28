@@ -105,8 +105,6 @@ static uint64_t dbgu_mmio_read(void *opaque, hwaddr offset, unsigned size)
         abort();
     }
 
-    info_report("at91.dbgu read 0x%03lx", offset);
-
     switch (offset) {
     case DBGU_MR:
         return s->reg_mr;
@@ -157,8 +155,6 @@ static void dbgu_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigne
                       offset, size, value);
         abort();
     }
-
-    info_report("at91.dbgu write 0x%03lx [value: 0x%08lx]", offset, value);
 
     switch (offset) {
     case DBGU_CR:
