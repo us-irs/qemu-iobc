@@ -49,7 +49,19 @@
 
 static int dbgu_uart_can_receive(void *opaque)
 {
-    return 1;   // TODO(at91.dbgu.recv)
+    DbguState *s = opaque;
+
+    // FIXME(at91.dbgu.recv): What to do here?
+    // - If we always return one, dbgu_uart_receive will set SR_OVRE according
+    //   to spec, but we may run into issues if the clocks are not set as in
+    //   reality.
+    // - If we return 1 based on SR_RXRDY, SR_OVRE will never be set and we
+    //   have a simulation which excludes buffer overruns.
+    //
+    // As this is the debug unit, we don't expect it to be used in-flight. Thus
+    // overrun.handling should be irrelevant and we go with the second solution
+    // for now.
+    return (s->reg_sr & SR_RXRDY) ? 0 : 1;
 }
 
 static void dbgu_uart_receive(void *opaque, const uint8_t *buf, int size)
