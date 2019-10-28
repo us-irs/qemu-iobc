@@ -198,7 +198,7 @@ static void pmc_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned
     pmc_update_mckr(s);
 
     // set interrupt if requested
-    qemu_set_irq(s->parent_irq, !!(s->reg_pmc_sr & s->reg_pmc_imr & PMC_IRQ_MASK));
+    qemu_set_irq(s->irq, !!(s->reg_pmc_sr & s->reg_pmc_imr & PMC_IRQ_MASK));
 }
 
 static const MemoryRegionOps pmc_mmio_ops = {
@@ -251,7 +251,7 @@ static void pmc_instance_init(Object *obj)
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
     PmcState *s = AT91_PMC(obj);
 
-    sysbus_init_irq(sbd, &s->parent_irq);
+    sysbus_init_irq(sbd, &s->irq);
 
     memory_region_init_io(&s->mmio, OBJECT(s), &pmc_mmio_ops, s, "at91.pmc", 0x100);
     sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->mmio);
