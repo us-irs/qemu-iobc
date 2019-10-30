@@ -36,6 +36,11 @@ static void iobc_init(MachineState *machine)
     MemoryRegion *mem_sdram  = g_new(MemoryRegion, 1);
     char *firmware_path;
 
+    qemu_irq aic_irq[32];
+    int i;
+
+    ARMCPU *cpu = ARM_CPU(cpu_create(machine->cpu_type));
+
     DeviceState *tmp;
 
     /* Memory Map for AT91SAM9G20 (current implementation status)                              */
@@ -90,10 +95,22 @@ static void iobc_init(MachineState *machine)
 
     // peripherals
     // FIXME: clean this up (aparently sysbus_create_simple is legacy/deprecated?)
+    tmp = qdev_create(NULL, TYPE_AT91_AIC);
+    qdev_init_nofail(tmp);
+    sysbus_mmio_map(SYS_BUS_DEVICE(tmp), 0, 0xFFFFF000);
+    for (i = 0; i < 32; i++) {
+        aic_irq[i] = qdev_get_gpio_in_named(tmp, "irq-line", i);
+    }
+    sysbus_connect_irq(SYS_BUS_DEVICE(tmp), 0, qdev_get_gpio_in(DEVICE(cpu), ARM_CPU_IRQ));
+    sysbus_connect_irq(SYS_BUS_DEVICE(tmp), 1, qdev_get_gpio_in(DEVICE(cpu), ARM_CPU_FIQ));
+
+    // TODO: AIC SYSC stub for IRQs
+
     tmp = qdev_create(NULL, TYPE_AT91_DBGU);
     qdev_prop_set_chr(tmp, "chardev", serial_hd(0));
     qdev_init_nofail(tmp);
     sysbus_mmio_map(SYS_BUS_DEVICE(tmp), 0, 0xFFFFF200);
+    sysbus_connect_irq(SYS_BUS_DEVICE(tmp), 0, aic_irq[1]);
 
     sysbus_create_simple(TYPE_AT91_PMC,  0xFFFFFC00, NULL);
 
@@ -129,7 +146,6 @@ static void iobc_init(MachineState *machine)
     create_unimplemented_device("iobc.periph.sdramc",  0xFFFFEA00, 0x200);
     create_unimplemented_device("iobc.periph.smc",     0xFFFFEC00, 0x200);
     create_unimplemented_device("iobc.periph.matrix",  0xFFFFEE00, 0x200);
-    create_unimplemented_device("iobc.periph.aic",     0xFFFFF000, 0x200);
     create_unimplemented_device("iobc.periph.pioa",    0xFFFFF400, 0x200);
     create_unimplemented_device("iobc.periph.piob",    0xFFFFF600, 0x200);
     create_unimplemented_device("iobc.periph.pioc",    0xFFFFF800, 0x200);
@@ -167,7 +183,7 @@ static void iobc_init(MachineState *machine)
         warn_report("No firmware specified: Use -bios <file> to load firmware");
     }
 
-    arm_load_kernel(ARM_CPU(cpu_create(machine->cpu_type)), &iobc_board_binfo);
+    arm_load_kernel(cpu, &iobc_board_binfo);
 }
 
 static void iobc_machine_init(MachineClass *mc)
