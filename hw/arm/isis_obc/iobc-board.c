@@ -24,7 +24,7 @@
 static struct arm_boot_info iobc_board_binfo = {
     .loader_start     = 0x00000000,
     .ram_size         = 0x10000000,
-    .nb_cpus          = 1,      // TODO
+    .nb_cpus          = 1,
 };
 
 static void iobc_init(MachineState *machine)
