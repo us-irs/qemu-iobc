@@ -11,6 +11,8 @@
 
 #include "iobc-reserved_memory.h"
 #include "at91-pmc.h"
+#include "at91-aic.h"
+#include "at91-aic_stub.h"
 #include "at91-dbgu.h"
 
 
@@ -37,6 +39,7 @@ static void iobc_init(MachineState *machine)
     char *firmware_path;
 
     qemu_irq aic_irq[32];
+    qemu_irq sysc_irq[32];
     int i;
 
     ARMCPU *cpu = ARM_CPU(cpu_create(machine->cpu_type));
@@ -95,6 +98,8 @@ static void iobc_init(MachineState *machine)
 
     // peripherals
     // FIXME: clean this up (aparently sysbus_create_simple is legacy/deprecated?)
+
+    // Advanced Interrupt Controller
     tmp = qdev_create(NULL, TYPE_AT91_AIC);
     qdev_init_nofail(tmp);
     sysbus_mmio_map(SYS_BUS_DEVICE(tmp), 0, 0xFFFFF000);
@@ -104,13 +109,20 @@ static void iobc_init(MachineState *machine)
     sysbus_connect_irq(SYS_BUS_DEVICE(tmp), 0, qdev_get_gpio_in(DEVICE(cpu), ARM_CPU_IRQ));
     sysbus_connect_irq(SYS_BUS_DEVICE(tmp), 1, qdev_get_gpio_in(DEVICE(cpu), ARM_CPU_FIQ));
 
-    // TODO: AIC SYSC stub for IRQs
+    // Advanced Interrupt Controller: Stub for or-ing SYSC interrupts
+    tmp = qdev_create(NULL, TYPE_AT91_AIC_STUB);
+    qdev_init_nofail(tmp);
+    for (i = 0; i < 32; i++) {
+        sysc_irq[i] = qdev_get_gpio_in_named(tmp, "irq-line", i);
+    }
+    sysbus_connect_irq(SYS_BUS_DEVICE(tmp), 0, aic_irq[1]);
 
+    // Debug Unit
     tmp = qdev_create(NULL, TYPE_AT91_DBGU);
     qdev_prop_set_chr(tmp, "chardev", serial_hd(0));
     qdev_init_nofail(tmp);
     sysbus_mmio_map(SYS_BUS_DEVICE(tmp), 0, 0xFFFFF200);
-    sysbus_connect_irq(SYS_BUS_DEVICE(tmp), 0, aic_irq[1]);
+    sysbus_connect_irq(SYS_BUS_DEVICE(tmp), 0, sysc_irq[0]);
 
     sysbus_create_simple(TYPE_AT91_PMC,  0xFFFFFC00, NULL);
 
