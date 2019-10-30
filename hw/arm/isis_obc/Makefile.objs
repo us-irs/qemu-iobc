@@ -1,4 +1,5 @@
 obj-y += iobc-board.o
 obj-y += iobc-reserved_memory.o
 obj-y += at91-pmc.o
+obj-y += at91-aic.o
 obj-y += at91-dbgu.o
