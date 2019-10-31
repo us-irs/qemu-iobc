@@ -1,0 +1,194 @@
+#include "at91-pit.h"
+#include "qemu/error-report.h"
+
+
+// TODO: use actual master clock
+// The PIT provides a programmable overflow counter and a reset-on-read
+// feature. It is built around two counters: a 20-bit CPIV counter and a 12-bit
+// PICNT counter. Both counters work at Master Clock /16.
+#define TEMPORARY_DEBUG_CLOCK   (32768)
+
+
+#define PIT_MR      0x00
+#define PIT_SR      0x04
+#define PIT_PIVR    0x08
+#define PIT_PIIR    0x0C
+
+#define MR_PIV      0x0FFFFF
+#define MR_PITEN    (1 << 24)
+#define MR_PITIEN   (1 << 25)
+
+#define SR_PITS     0x01
+
+
+static void pit_timer_tick(void *opaque)
+{
+    PitState *s = opaque;
+
+    info_report("at91.pit: timer tick");
+
+    s->reg_sr |= SR_PITS;
+    s->picnt = (s->picnt + 1) & 0xFFF;
+
+    // trigger interrupt, if enabled
+    if (s->reg_mr & MR_PITIEN) {
+        qemu_set_irq(s->irq, 1);
+    }
+
+    // disable timer if requested
+    if (!(s->reg_mr & MR_PITEN)) {
+        ptimer_stop(s->timer);
+    }
+}
+
+
+inline static uint32_t pit_timer_period(PitState *s)
+{
+    return 1 + (s->reg_mr & MR_PIV);
+}
+
+inline static uint32_t pit_timer_cpiv(PitState *s)
+{
+    return (s->picnt << 20) | ((pit_timer_period(s) - ptimer_get_count(s->timer)) & 0xFFFFF);
+}
+
+
+static uint64_t pit_mmio_read(void *opaque, hwaddr offset, unsigned size)
+{
+    PitState *s = opaque;
+    uint32_t picnt, cpiv;
+
+    if (size != 0x04) {
+        error_report("at91.pit: illegal read access at 0x%02lx with size: 0x%02x", offset, size);
+        abort();
+    }
+
+    switch (offset) {
+    case PIT_MR:
+        return s->reg_mr;
+
+    case PIT_SR:
+        return s->reg_sr;
+
+    case PIT_PIVR:
+        picnt = s->picnt;
+        cpiv = pit_timer_cpiv(s);
+
+        // reset overflow counter and interrupt
+        s->picnt = 0;
+        s->reg_sr &= ~SR_PITS;
+        qemu_set_irq(s->irq, 0);
+
+        return (picnt << 20) | cpiv;
+
+    case PIT_PIIR:
+        return (s->picnt << 20) | pit_timer_cpiv(s);
+
+    default:
+        error_report("at91.pit: illegal read access at 0x%02lx", offset);
+        abort();
+    }
+}
+
+static void pit_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
+{
+    PitState *s = opaque;
+
+    if (size != 0x04) {
+        error_report("at91.pit: illegal write access at 0x%02lx with size: 0x%02x [value: 0x%08lx]",
+                     offset, size, value);
+        abort();
+    }
+
+    switch (offset) {
+    case PIT_MR:
+        s->reg_mr = value;
+
+        if (value & MR_PITEN) {
+            // FIXME: clock speed may be reconfigured, how do we handle this?
+            ptimer_set_freq(s->timer, TEMPORARY_DEBUG_CLOCK / 16);
+            ptimer_set_limit(s->timer, pit_timer_period(s), 1);
+            ptimer_run(s->timer, 0);
+        } else {
+            // do nothing: timer is disabled and stopped once CPIV reaches zero
+        }
+
+        break;
+
+    default:
+        error_report("at91.pit: illegal read access at 0x%02lx", offset);
+        abort();
+    }
+}
+
+static const MemoryRegionOps pit_mmio_ops = {
+    .read = pit_mmio_read,
+    .write = pit_mmio_write,
+    .impl.min_access_size = 4,
+    .impl.max_access_size = 4,
+    .valid.min_access_size = 4,
+    .valid.max_access_size = 4,
+    .endianness = DEVICE_NATIVE_ENDIAN,
+};
+
+
+static void pit_reset_registers(PitState *s)
+{
+    s->reg_mr = 0xFFFFF;
+    s->reg_sr = 0;
+    s->picnt  = 0;
+}
+
+static void pit_device_init(Object *obj)
+{
+    SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
+    PitState *s = AT91_PIT(obj);
+    QEMUBH *bh;
+
+    bh = qemu_bh_new(pit_timer_tick, s);
+    s->timer = ptimer_init(bh, PTIMER_POLICY_DEFAULT);
+
+    sysbus_init_irq(sbd, &s->irq);
+
+    memory_region_init_io(&s->mmio, OBJECT(s), &pit_mmio_ops, s, "at91.pit", 0x10);
+    sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->mmio);
+}
+
+static void pit_device_realize(DeviceState *dev, Error **errp)
+{
+    PitState *s = AT91_PIT(dev);
+
+    pit_reset_registers(s);
+}
+
+static void pit_device_reset(DeviceState *dev)
+{
+    PitState *s = AT91_PIT(dev);
+
+    ptimer_stop(s->timer);
+    pit_reset_registers(s);
+    qemu_set_irq(s->irq, 0);
+}
+
+static void pit_class_init(ObjectClass *klass, void *data)
+{
+    DeviceClass *dc = DEVICE_CLASS(klass);
+
+    dc->realize = pit_device_realize;
+    dc->reset = pit_device_reset;
+}
+
+static const TypeInfo pit_device_info = {
+    .name = TYPE_AT91_PIT,
+    .parent = TYPE_SYS_BUS_DEVICE,
+    .instance_size = sizeof(PitState),
+    .instance_init = pit_device_init,
+    .class_init = pit_class_init,
+};
+
+static void pit_register_types(void)
+{
+    type_register_static(&pit_device_info);
+}
+
+type_init(pit_register_types)
