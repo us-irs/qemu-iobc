@@ -16,41 +16,59 @@
 #include "at91-dbgu.h"
 
 
-// TODO:
-// - implement at91-dbgu
-// - implement at91-aic
-
-
 static struct arm_boot_info iobc_board_binfo = {
     .loader_start     = 0x00000000,
     .ram_size         = 0x10000000,
     .nb_cpus          = 1,
 };
 
+
+typedef enum {
+    AT91_BOOTMEM_ROM,
+    AT91_BOOTMEM_SRAM,
+    AT91_BOOTMEM_SDRAM,
+    __AT91_BOOTMEM_NUM_REGIONS,
+} at91_bootmem_region;
+
+typedef struct {
+    ARMCPU *cpu;
+
+    MemoryRegion mem_boot[__AT91_BOOTMEM_NUM_REGIONS];
+    MemoryRegion mem_rom;
+    MemoryRegion mem_sram0;
+    MemoryRegion mem_sram1;
+    MemoryRegion mem_pflash;
+    MemoryRegion mem_sdram;
+
+    DeviceState *dev_pmc;
+    DeviceState *dev_aic;
+    DeviceState *dev_aic_stub;
+    DeviceState *dev_rstc;
+    DeviceState *dev_pit;
+    DeviceState *dev_dbgu;
+    DeviceState *dev_matrix;
+
+    qemu_irq irq_aic[32];
+    qemu_irq irq_sysc[32];
+
+    at91_bootmem_region mem_boot_target;
+} IobcBoardState;
+
+
 static void iobc_init(MachineState *machine)
 {
     MemoryRegion *address_space_mem = get_system_memory();
-    MemoryRegion *mem_boot   = g_new(MemoryRegion, 1);
-    MemoryRegion *mem_rom    = g_new(MemoryRegion, 1);
-    MemoryRegion *mem_sram0  = g_new(MemoryRegion, 1);
-    MemoryRegion *mem_sram1  = g_new(MemoryRegion, 1);
-    MemoryRegion *mem_pflash = g_new(MemoryRegion, 1);
-    MemoryRegion *mem_sdram  = g_new(MemoryRegion, 1);
+    IobcBoardState *s = g_new(IobcBoardState, 1);
     char *firmware_path;
-
-    qemu_irq aic_irq[32];
-    qemu_irq sysc_irq[32];
     int i;
 
-    ARMCPU *cpu = ARM_CPU(cpu_create(machine->cpu_type));
-
-    DeviceState *tmp;
+    s->cpu = ARM_CPU(cpu_create(machine->cpu_type));
 
     /* Memory Map for AT91SAM9G20 (current implementation status)                              */
     /*                                                                                         */
     /* start        length       description        notes                                      */
     /* --------------------------------------------------------------------------------------- */
-    /* 0x0000_0000  0x0010_0000  Boot Memory        Aliases SDRAMC at boot (set by hardware)   */
+    /* 0x0000_0000  0x0010_0000  Boot Memory        Aliases SDRAM at boot (set by hardware)    */
     /* 0x0010_0000  0x0000_8000  Internal ROM                                                  */
     /* 0x0020_0000  0x0000_4000  Internal SRAM0                                                */
     /* 0x0030_0000  0x0000_4000  Internal SRAM1                                                */
@@ -60,29 +78,47 @@ static void iobc_init(MachineState *machine)
     /* 0x2000_0000  0x1000_0000  SDRAM              Copied from NOR Flash at boot via hardware */
     /* ...                                                                                     */
     /*                                                                                         */
+    /* ...                                                                                     */
+    /* 0xFFFF_EE00  0x0000_0200  Matrix             TODO: Only minimal implementation for now  */
+    /* 0xFFFF_F000  0x0000_0200  AIC                Uses stub to OR system controller IRQs     */
     /* 0xFFFF_F200  0x0000_0200  Debug Unit (DBGU)                                             */
     /* ...                                                                                     */
     /* 0xFFFF_FC00  0x0000_0100  PMC                                                           */
+    /* 0xFFFF_FD00  0x0000_0010  RSTC               TODO: Only minimal implementation for now  */
+    /* ...                                                                                     */
+    /* 0xFFFF_FD30  0x0000_0010  PIT                TODO: Uses dummy clock frequency           */
     /* ...                                                                                     */
 
     // rom, ram, and flash
-    memory_region_init_rom(mem_rom,   NULL, "iobc.internal.rom",   0x8000, &error_fatal);
-    memory_region_init_ram(mem_sram0, NULL, "iobc.internal.sram0", 0x4000, &error_fatal);
-    memory_region_init_ram(mem_sram1, NULL, "iobc.internal.sram1", 0x4000, &error_fatal);
+    memory_region_init_rom(&s->mem_rom,   NULL, "iobc.internal.rom",   0x8000, &error_fatal);
+    memory_region_init_ram(&s->mem_sram0, NULL, "iobc.internal.sram0", 0x4000, &error_fatal);
+    memory_region_init_ram(&s->mem_sram1, NULL, "iobc.internal.sram1", 0x4000, &error_fatal);
 
-    memory_region_init_ram(mem_pflash, NULL, "iobc.pflash", 0x10000000, &error_fatal);
-    memory_region_init_ram(mem_sdram,  NULL, "iobc.sdram",  0x10000000, &error_fatal);
+    memory_region_init_ram(&s->mem_pflash, NULL, "iobc.pflash", 0x10000000, &error_fatal);
+    memory_region_init_ram(&s->mem_sdram,  NULL, "iobc.sdram",  0x10000000, &error_fatal);
 
-    // boot memory aliases nor pflash (FIXME: this alias can be changed at runtime)
-    memory_region_init_alias(mem_boot, NULL, "iobc.internal.boot", mem_pflash, 0x00000000, 0x00100000);
+    // bootmem aliases
+    memory_region_init_alias(&s->mem_boot[AT91_BOOTMEM_ROM],   NULL, "iobc.internal.bootmem", &s->mem_rom,   0, 0x100000);
+    memory_region_init_alias(&s->mem_boot[AT91_BOOTMEM_SRAM],  NULL, "iobc.internal.bootmem", &s->mem_sram0, 0, 0x100000);
+    memory_region_init_alias(&s->mem_boot[AT91_BOOTMEM_SDRAM], NULL, "iobc.internal.bootmem", &s->mem_sdram, 0, 0x100000);
 
     // put it all together
-    memory_region_add_subregion(address_space_mem, 0x00000000, mem_boot);
-    memory_region_add_subregion(address_space_mem, 0x00100000, mem_rom);
-    memory_region_add_subregion(address_space_mem, 0x00200000, mem_sram0);
-    memory_region_add_subregion(address_space_mem, 0x00300000, mem_sram1);
-    memory_region_add_subregion(address_space_mem, 0x10000000, mem_pflash);
-    memory_region_add_subregion(address_space_mem, 0x20000000, mem_sdram);
+    memory_region_add_subregion(address_space_mem, 0x00100000, &s->mem_rom);
+    memory_region_add_subregion(address_space_mem, 0x00200000, &s->mem_sram0);
+    memory_region_add_subregion(address_space_mem, 0x00300000, &s->mem_sram1);
+    memory_region_add_subregion(address_space_mem, 0x10000000, &s->mem_pflash);
+    memory_region_add_subregion(address_space_mem, 0x20000000, &s->mem_sdram);
+
+    memory_region_transaction_begin();
+    for (i = 0; i < __AT91_BOOTMEM_NUM_REGIONS; i++) {
+        memory_region_set_enabled(&s->mem_boot[i], false);
+        memory_region_add_subregion_overlap(address_space_mem, 0, &s->mem_boot[i], 1);
+    }
+    memory_region_transaction_commit();
+
+    // map SDRAM to boot by default
+    memory_region_set_enabled(&s->mem_boot[AT91_BOOTMEM_SDRAM], true);
+    s->mem_boot_target = AT91_BOOTMEM_SDRAM;
 
     // reserved memory, accessing this will abort
     create_reserved_memory_region("iobc.undefined", 0x90000000, 0xF0000000 - 0x90000000);
@@ -96,35 +132,33 @@ static void iobc_init(MachineState *machine)
     create_reserved_memory_region("iobc.internal.reserved2", 0x304000, 0x400000 - 0x304000);
     create_reserved_memory_region("iobc.internal.reserved3", 0x504000, 0x0FFFFFFF - 0x504000);
 
-    // peripherals
-    // FIXME: clean this up (aparently sysbus_create_simple is legacy/deprecated?)
-
     // Advanced Interrupt Controller
-    tmp = qdev_create(NULL, TYPE_AT91_AIC);
-    qdev_init_nofail(tmp);
-    sysbus_mmio_map(SYS_BUS_DEVICE(tmp), 0, 0xFFFFF000);
+    s->dev_aic = qdev_create(NULL, TYPE_AT91_AIC);
+    qdev_init_nofail(s->dev_aic);
+    sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_aic), 0, 0xFFFFF000);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_aic), 0, qdev_get_gpio_in(DEVICE(s->cpu), ARM_CPU_IRQ));
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_aic), 1, qdev_get_gpio_in(DEVICE(s->cpu), ARM_CPU_FIQ));
     for (i = 0; i < 32; i++) {
-        aic_irq[i] = qdev_get_gpio_in_named(tmp, "irq-line", i);
+        s->irq_aic[i] = qdev_get_gpio_in_named(s->dev_aic, "irq-line", i);
     }
-    sysbus_connect_irq(SYS_BUS_DEVICE(tmp), 0, qdev_get_gpio_in(DEVICE(cpu), ARM_CPU_IRQ));
-    sysbus_connect_irq(SYS_BUS_DEVICE(tmp), 1, qdev_get_gpio_in(DEVICE(cpu), ARM_CPU_FIQ));
 
     // Advanced Interrupt Controller: Stub for or-ing SYSC interrupts
-    tmp = qdev_create(NULL, TYPE_AT91_AIC_STUB);
-    qdev_init_nofail(tmp);
+    s->dev_aic_stub = qdev_create(NULL, TYPE_AT91_AIC_STUB);
+    qdev_init_nofail(s->dev_aic_stub);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_aic_stub), 0, s->irq_aic[1]);
     for (i = 0; i < 32; i++) {
-        sysc_irq[i] = qdev_get_gpio_in_named(tmp, "irq-line", i);
+        s->irq_sysc[i] = qdev_get_gpio_in_named(s->dev_aic_stub, "irq-line", i);
     }
-    sysbus_connect_irq(SYS_BUS_DEVICE(tmp), 0, aic_irq[1]);
 
     // Debug Unit
-    tmp = qdev_create(NULL, TYPE_AT91_DBGU);
-    qdev_prop_set_chr(tmp, "chardev", serial_hd(0));
-    qdev_init_nofail(tmp);
-    sysbus_mmio_map(SYS_BUS_DEVICE(tmp), 0, 0xFFFFF200);
-    sysbus_connect_irq(SYS_BUS_DEVICE(tmp), 0, sysc_irq[0]);
+    s->dev_dbgu = qdev_create(NULL, TYPE_AT91_DBGU);
+    qdev_prop_set_chr(s->dev_dbgu, "chardev", serial_hd(0));
+    qdev_init_nofail(s->dev_dbgu);
+    sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_dbgu), 0, 0xFFFFF200);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_dbgu), 0, s->irq_sysc[0]);
 
-    sysbus_create_simple(TYPE_AT91_PMC,  0xFFFFFC00, NULL);
+    // other peripherals
+    sysbus_create_simple(TYPE_AT91_PMC,  0xFFFFFC00, s->irq_sysc[1]);
 
     // currently unimplemented things...
     create_unimplemented_device("iobc.internal.uhp",   0x00500000, 0x4000);
@@ -175,13 +209,13 @@ static void iobc_init(MachineState *machine)
 
         if (firmware_path) {
             // load into nor flash (default program store)
-            if (load_image_mr(firmware_path, mem_pflash) < 0) {
+            if (load_image_mr(firmware_path, &s->mem_pflash) < 0) {
                 error_report("Unable to load %s into pflash", bios_name);
                 exit(1);
             }
 
             // nor flash gets copied to sdram at boot, thus we load it directly
-            if (load_image_mr(firmware_path, mem_sdram) < 0) {
+            if (load_image_mr(firmware_path, &s->mem_sdram) < 0) {
                 error_report("Unable to load %s into sdram", bios_name);
                 exit(1);
             }
@@ -195,7 +229,7 @@ static void iobc_init(MachineState *machine)
         warn_report("No firmware specified: Use -bios <file> to load firmware");
     }
 
-    arm_load_kernel(cpu, &iobc_board_binfo);
+    arm_load_kernel(s->cpu, &iobc_board_binfo);
 }
 
 static void iobc_machine_init(MachineClass *mc)
