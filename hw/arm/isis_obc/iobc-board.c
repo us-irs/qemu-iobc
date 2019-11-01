@@ -16,6 +16,7 @@
 #include "at91-dbgu.h"
 #include "at91-pit.h"
 #include "at91-matrix.h"
+#include "at91-rstc.h"
 
 
 static struct arm_boot_info iobc_board_binfo = {
@@ -180,7 +181,8 @@ static void iobc_init(MachineState *machine)
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_dbgu), 0, s->irq_sysc[1]);
 
     // other peripherals
-    s->dev_pit = sysbus_create_simple(TYPE_AT91_PIT, 0xFFFFFD30, s->irq_sysc[2]);
+    s->dev_rstc = sysbus_create_simple(TYPE_AT91_RSTC, 0xFFFFFD00, s->irq_sysc[2]);
+    s->dev_pit  = sysbus_create_simple(TYPE_AT91_PIT,  0xFFFFFD30, s->irq_sysc[3]);
 
     // currently unimplemented things...
     create_unimplemented_device("iobc.internal.uhp",   0x00500000, 0x4000);
@@ -217,7 +219,6 @@ static void iobc_init(MachineState *machine)
     create_unimplemented_device("iobc.periph.piob",    0xFFFFF600, 0x200);
     create_unimplemented_device("iobc.periph.pioc",    0xFFFFF800, 0x200);
 
-    create_unimplemented_device("iobc.periph.rstc",    0xFFFFFD00, 0x10);
     create_unimplemented_device("iobc.periph.shdwc",   0xFFFFFD10, 0x10);
     create_unimplemented_device("iobc.periph.rtt",     0xFFFFFD20, 0x10);
     create_unimplemented_device("iobc.periph.wdt",     0xFFFFFD40, 0x10);
