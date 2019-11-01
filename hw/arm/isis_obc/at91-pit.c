@@ -28,8 +28,6 @@ static void pit_timer_tick(void *opaque)
 {
     PitState *s = opaque;
 
-    info_report("at91.pit: timer tick");
-
     s->reg_sr |= SR_PITS;
     s->picnt = (s->picnt + 1) & 0xFFF;
 
