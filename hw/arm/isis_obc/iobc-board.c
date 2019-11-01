@@ -56,7 +56,7 @@ typedef struct {
 } IobcBoardState;
 
 
-static void iobc_mkclk_changed(void *opaque, int clock)
+static void iobc_mkclk_changed(void *opaque, unsigned clock)
 {
     info_report("at91 master clock changed: %d", clock);
 }
