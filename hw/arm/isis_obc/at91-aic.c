@@ -180,7 +180,6 @@ static void aic_irq_handle(void *opaque, int n, int level)
     }
 
     if (active) {
-        info_report("at91.aic: active interrupt occured: %d, level: %d", n, level);
         s->reg_ipr |= mask;
     } else if (!aic_irq_is_edge_triggered(s, n)) {
         // edge-triggered IRQs are cleared during handling, only clear
