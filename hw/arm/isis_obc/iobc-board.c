@@ -58,7 +58,10 @@ typedef struct {
 
 static void iobc_mkclk_changed(void *opaque, unsigned clock)
 {
+    IobcBoardState *s = opaque;
+
     info_report("at91 master clock changed: %d", clock);
+    at91_pit_set_master_clock(AT91_PIT(s->dev_pit), clock);
 }
 
 static void iobc_init(MachineState *machine)
@@ -92,7 +95,7 @@ static void iobc_init(MachineState *machine)
     /* 0xFFFF_FC00  0x0000_0100  PMC                                                           */
     /* 0xFFFF_FD00  0x0000_0010  RSTC               TODO: Only minimal implementation for now  */
     /* ...                                                                                     */
-    /* 0xFFFF_FD30  0x0000_0010  PIT                TODO: Uses dummy clock frequency           */
+    /* 0xFFFF_FD30  0x0000_0010  PIT                                                           */
     /* ...                                                                                     */
 
     // rom, ram, and flash

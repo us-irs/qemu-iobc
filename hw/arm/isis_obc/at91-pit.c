@@ -2,13 +2,6 @@
 #include "qemu/error-report.h"
 
 
-// TODO: use actual master clock
-// The PIT provides a programmable overflow counter and a reset-on-read
-// feature. It is built around two counters: a 20-bit CPIV counter and a 12-bit
-// PICNT counter. Both counters work at Master Clock /16.
-#define TEMPORARY_DEBUG_CLOCK   (32768)
-
-
 #define PIT_MR      0x00
 #define PIT_SR      0x04
 #define PIT_PIVR    0x08
@@ -19,6 +12,16 @@
 #define MR_PITIEN   (1 << 25)
 
 #define SR_PITS     0x01
+
+
+void at91_pit_set_master_clock(PitState *s, unsigned mclk)
+{
+    s->mclk = mclk;
+
+    if (s->timer) {
+        ptimer_set_freq(s->timer, s->mclk / 16);
+    }
+}
 
 
 static void pit_timer_tick(void *opaque)
@@ -105,8 +108,7 @@ static void pit_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned
         s->reg_mr = value;
 
         if (value & MR_PITEN) {
-            // FIXME: clock speed may be reconfigured, how do we handle this?
-            ptimer_set_freq(s->timer, TEMPORARY_DEBUG_CLOCK / 16);
+            ptimer_set_freq(s->timer, s->mclk / 16);
             ptimer_set_limit(s->timer, pit_timer_period(s), 1);
             ptimer_run(s->timer, 0);
         } else {

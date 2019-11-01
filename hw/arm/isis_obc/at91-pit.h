@@ -16,11 +16,15 @@ typedef struct {
     MemoryRegion mmio;
     qemu_irq irq;
     ptimer_state *timer;
+    unsigned mclk;
 
     uint32_t reg_mr;
     uint32_t reg_sr;
 
     uint32_t picnt;
 } PitState;
+
+
+void at91_pit_set_master_clock(PitState *s, unsigned mclk);
 
 #endif /* HW_ARM_ISIS_OBC_PIT_H */
