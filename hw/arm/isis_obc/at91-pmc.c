@@ -2,7 +2,7 @@
 #include "qemu/error-report.h"
 
 #define SO_FREQ        32768        // slow clock oscillator frequency
-#define MO_FREQ     18432000        // main oscillator frequency
+#define MO_FREQ     18432000        // main oscillator frequency    // TODO: is this correct?
 
 #define SR_MOSCS    0x00000001
 #define SR_LOCKA    0x00000002
@@ -29,6 +29,13 @@
 #define PMC_PLLICPR     0x80
 
 #define PMC_IRQ_MASK    0x30F
+
+
+inline static void pmc_notify_mclk_change(PmcState *s)
+{
+    if (s->mclk_cb)
+        s->mclk_cb(s->mclk_opaque, s->master_clock_freq);
+}
 
 
 static void pmc_update_mckr(PmcState *s)
@@ -62,6 +69,10 @@ static void pmc_update_mckr(PmcState *s)
         s->reg_pmc_sr |= SR_MCKRDY;
     else
         s->reg_pmc_sr &= ~SR_MCKRDY;
+
+    // TODO: update clock (only if ready?)
+
+    pmc_notify_mclk_change(s);
 }
 
 static uint64_t pmc_mmio_read(void *opaque, hwaddr offset, unsigned size)
@@ -227,11 +238,18 @@ static void pmc_device_realize(DeviceState *dev, Error **errp)
 {
     PmcState *s = AT91_PMC(dev);
     pmc_reset_registers(s);
+    s->master_clock_freq = SO_FREQ;
+
+    pmc_update_mckr(s);
 }
 
 static void pmc_device_reset(DeviceState *dev)
 {
-    pmc_reset_registers(AT91_PMC(dev));
+    PmcState *s = AT91_PMC(dev);
+    pmc_reset_registers(s);
+    s->master_clock_freq = SO_FREQ;
+
+    pmc_update_mckr(s);
 }
 
 static void pmc_class_init(ObjectClass *klass, void *data)
