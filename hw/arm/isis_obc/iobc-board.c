@@ -56,6 +56,11 @@ typedef struct {
 } IobcBoardState;
 
 
+static void iobc_mkclk_changed(void *opaque, int clock)
+{
+    info_report("at91 master clock changed: %d", clock);
+}
+
 static void iobc_init(MachineState *machine)
 {
     MemoryRegion *address_space_mem = get_system_memory();
@@ -151,16 +156,19 @@ static void iobc_init(MachineState *machine)
         s->irq_sysc[i] = qdev_get_gpio_in_named(s->dev_aic_stub, "irq-line", i);
     }
 
+    // Power Managemant Controller
+    s->dev_pmc = sysbus_create_simple(TYPE_AT91_PMC, 0xFFFFFC00, s->irq_sysc[0]);
+    at91_pmc_set_mclk_change_callback(AT91_PMC(s->dev_pmc), s, iobc_mkclk_changed);
+
     // Debug Unit
     s->dev_dbgu = qdev_create(NULL, TYPE_AT91_DBGU);
     qdev_prop_set_chr(s->dev_dbgu, "chardev", serial_hd(0));
     qdev_init_nofail(s->dev_dbgu);
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_dbgu), 0, 0xFFFFF200);
-    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_dbgu), 0, s->irq_sysc[0]);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_dbgu), 0, s->irq_sysc[1]);
 
     // other peripherals
-    sysbus_create_simple(TYPE_AT91_PMC,  0xFFFFFC00, s->irq_sysc[1]);
-    sysbus_create_simple(TYPE_AT91_PIT,  0xFFFFFD30, s->irq_sysc[2]);
+    s->dev_pit = sysbus_create_simple(TYPE_AT91_PIT, 0xFFFFFD30, s->irq_sysc[2]);
 
     // currently unimplemented things...
     create_unimplemented_device("iobc.internal.uhp",   0x00500000, 0x4000);
