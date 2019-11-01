@@ -83,13 +83,11 @@ static void pmc_update_mckr(PmcState *s)
 
         case 2:     // PLLA clock
             freq = CLOCK_FREQ_MAIN;
-            printf("PLLA: %x\n", s->reg_ckgr_plla);
             freq /= s->reg_ckgr_plla & 0xff;
             freq *= ((s->reg_ckgr_plla >> 16) & 0xff) + 1;
             break;
 
         case 3:     // PLLB clock
-            printf("PLLB: %x\n", s->reg_ckgr_pllb);
             freq = CLOCK_FREQ_MAIN;
             freq /= s->reg_ckgr_pllb & 0xff;
             freq *= ((s->reg_ckgr_pllb >> 16) & 0x3f) + 1;
