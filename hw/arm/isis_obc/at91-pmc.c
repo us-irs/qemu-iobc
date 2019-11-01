@@ -1,8 +1,8 @@
 #include "at91-pmc.h"
 #include "qemu/error-report.h"
 
-#define SO_FREQ        32768        // slow clock oscillator frequency
-#define MO_FREQ     18432000        // main oscillator frequency    // TODO: is this correct?
+#define CLOCK_FREQ_SLOW        32768    // slow clock oscillator frequency
+#define CLOCK_FREQ_MAIN     18432000    // main oscillator frequency
 
 #define SR_MOSCS    0x00000001
 #define SR_LOCKA    0x00000002
@@ -42,6 +42,7 @@ static void pmc_update_mckr(PmcState *s)
 {
     uint8_t css = s->reg_pmc_mckr & 0x03;
     bool ready = false;
+    unsigned freq = s->master_clock_freq;
 
     switch (css) {
     case 0:     // slow clock
@@ -70,9 +71,43 @@ static void pmc_update_mckr(PmcState *s)
     else
         s->reg_pmc_sr &= ~SR_MCKRDY;
 
-    // TODO: update clock (only if ready?)
+    if (ready) {
+        switch (css) {
+        case 0:     // slow clock
+            freq = CLOCK_FREQ_SLOW;
+            break;
 
-    pmc_notify_mclk_change(s);
+        case 1:     // main clock
+            freq = CLOCK_FREQ_MAIN;
+            break;
+
+        case 2:     // PLLA clock
+            freq = CLOCK_FREQ_MAIN;
+            printf("PLLA: %x\n", s->reg_ckgr_plla);
+            freq /= s->reg_ckgr_plla & 0xff;
+            freq *= ((s->reg_ckgr_plla >> 16) & 0xff) + 1;
+            break;
+
+        case 3:     // PLLB clock
+            printf("PLLB: %x\n", s->reg_ckgr_pllb);
+            freq = CLOCK_FREQ_MAIN;
+            freq /= s->reg_ckgr_pllb & 0xff;
+            freq *= ((s->reg_ckgr_pllb >> 16) & 0x3f) + 1;
+            break;
+        }
+
+        freq /= 1 << ((s->reg_pmc_mckr >> 2) & 0x07);
+        if ((s->reg_pmc_mckr >> 8) & 0x03) {
+            freq /= 2 * ((s->reg_pmc_mckr >> 8) & 0x03);
+        }
+    }
+
+    // TODO: set master clock to zero if not ready?
+
+    if (s->master_clock_freq != freq) {
+        s->master_clock_freq = freq;
+        pmc_notify_mclk_change(s);
+    }
 }
 
 static uint64_t pmc_mmio_read(void *opaque, hwaddr offset, unsigned size)
@@ -159,7 +194,7 @@ static void pmc_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned
     case CKGR_MOR:
         s->reg_ckgr_mor = value;
         s->reg_pmc_sr = (s->reg_pmc_sr & ~0x00000001) | (value & 0x00000001);
-        s->reg_ckgr_mcfr = (value & 1) ? (1 << 16) | (MO_FREQ / SO_FREQ / 16) : 0;
+        s->reg_ckgr_mcfr = (value & 1) ? (1 << 16) | (CLOCK_FREQ_MAIN / CLOCK_FREQ_SLOW / 16) : 0;
         break;
 
     case CKGR_PLLAR:
@@ -238,7 +273,7 @@ static void pmc_device_realize(DeviceState *dev, Error **errp)
 {
     PmcState *s = AT91_PMC(dev);
     pmc_reset_registers(s);
-    s->master_clock_freq = SO_FREQ;
+    s->master_clock_freq = 0;
 
     pmc_update_mckr(s);
 }
@@ -247,7 +282,7 @@ static void pmc_device_reset(DeviceState *dev)
 {
     PmcState *s = AT91_PMC(dev);
     pmc_reset_registers(s);
-    s->master_clock_freq = SO_FREQ;
+    s->master_clock_freq = 0;
 
     pmc_update_mckr(s);
 }

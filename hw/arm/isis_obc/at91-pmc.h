@@ -9,7 +9,7 @@
 #define AT91_PMC(obj) OBJECT_CHECK(PmcState, (obj), TYPE_AT91_PMC)
 
 
-typedef void(at91_mclk_cb)(void *opaque, int value);
+typedef void(at91_mclk_cb)(void *opaque, unsigned value);
 
 typedef struct {
     SysBusDevice parent_obj;
@@ -31,7 +31,7 @@ typedef struct {
     uint32_t reg_pmc_imr;
     uint32_t reg_pmc_pllicpr;
 
-    int master_clock_freq;
+    unsigned master_clock_freq;
 
     // observer for master-clock change
     at91_mclk_cb *mclk_cb;
