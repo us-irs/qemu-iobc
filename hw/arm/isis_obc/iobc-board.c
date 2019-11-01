@@ -15,6 +15,7 @@
 #include "at91-aic_stub.h"
 #include "at91-dbgu.h"
 #include "at91-pit.h"
+#include "at91-matrix.h"
 
 
 static struct arm_boot_info iobc_board_binfo = {
@@ -23,13 +24,6 @@ static struct arm_boot_info iobc_board_binfo = {
     .nb_cpus          = 1,
 };
 
-
-typedef enum {
-    AT91_BOOTMEM_ROM,
-    AT91_BOOTMEM_SRAM,
-    AT91_BOOTMEM_SDRAM,
-    __AT91_BOOTMEM_NUM_REGIONS,
-} at91_bootmem_region;
 
 typedef struct {
     ARMCPU *cpu;
@@ -55,6 +49,17 @@ typedef struct {
     at91_bootmem_region mem_boot_target;
 } IobcBoardState;
 
+
+static void iobc_bootmem_remap(void *opaque, at91_bootmem_region target)
+{
+    IobcBoardState *s = opaque;
+
+    memory_region_transaction_begin();
+    memory_region_set_enabled(&s->mem_boot[s->mem_boot_target], false);
+    memory_region_set_enabled(&s->mem_boot[target], true);
+    s->mem_boot_target = target;
+    memory_region_transaction_commit();
+}
 
 static void iobc_mkclk_changed(void *opaque, unsigned clock)
 {
@@ -163,6 +168,10 @@ static void iobc_init(MachineState *machine)
     s->dev_pmc = sysbus_create_simple(TYPE_AT91_PMC, 0xFFFFFC00, s->irq_sysc[0]);
     at91_pmc_set_mclk_change_callback(AT91_PMC(s->dev_pmc), s, iobc_mkclk_changed);
 
+    // Bus Matrix
+    s->dev_matrix = sysbus_create_simple(TYPE_AT91_MATRIX, 0xFFFFEE00, NULL);
+    at91_matrix_set_bootmem_remap_callback(AT91_MATRIX(s->dev_matrix), s, iobc_bootmem_remap);
+
     // Debug Unit
     s->dev_dbgu = qdev_create(NULL, TYPE_AT91_DBGU);
     qdev_prop_set_chr(s->dev_dbgu, "chardev", serial_hd(0));
@@ -204,7 +213,6 @@ static void iobc_init(MachineState *machine)
     create_unimplemented_device("iobc.periph.ecc",     0xFFFFE800, 0x200);
     create_unimplemented_device("iobc.periph.sdramc",  0xFFFFEA00, 0x200);
     create_unimplemented_device("iobc.periph.smc",     0xFFFFEC00, 0x200);
-    create_unimplemented_device("iobc.periph.matrix",  0xFFFFEE00, 0x200);
     create_unimplemented_device("iobc.periph.pioa",    0xFFFFF400, 0x200);
     create_unimplemented_device("iobc.periph.piob",    0xFFFFF600, 0x200);
     create_unimplemented_device("iobc.periph.pioc",    0xFFFFF800, 0x200);
