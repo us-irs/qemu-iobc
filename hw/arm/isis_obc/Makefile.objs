@@ -7,3 +7,4 @@ obj-y += at91-pit.o
 obj-y += at91-rstc.o
 obj-y += at91-matrix.o
 obj-y += at91-dbgu.o
+obj-y += at91-pio.o
