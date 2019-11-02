@@ -17,6 +17,7 @@
 #include "at91-pit.h"
 #include "at91-matrix.h"
 #include "at91-rstc.h"
+#include "at91-pio.h"
 
 
 static struct arm_boot_info iobc_board_binfo = {
@@ -43,6 +44,9 @@ typedef struct {
     DeviceState *dev_pit;
     DeviceState *dev_dbgu;
     DeviceState *dev_matrix;
+    DeviceState *dev_pio_a;
+    DeviceState *dev_pio_b;
+    DeviceState *dev_pio_c;
 
     qemu_irq irq_aic[32];
     qemu_irq irq_sysc[32];
@@ -97,6 +101,9 @@ static void iobc_init(MachineState *machine)
     /* 0xFFFF_EE00  0x0000_0200  Matrix             TODO: Only minimal implementation for now  */
     /* 0xFFFF_F000  0x0000_0200  AIC                Uses stub to OR system controller IRQs     */
     /* 0xFFFF_F200  0x0000_0200  Debug Unit (DBGU)                                             */
+    /* 0xFFFF_F400  0x0000_0200  PIO A              TODO: Peripherals not connected yet        */
+    /* 0xFFFF_F600  0x0000_0200  PIO B              TODO: Peripherals not connected yet        */
+    /* 0xFFFF_F800  0x0000_0200  PIO C              TODO: Peripherals not connected yet        */
     /* ...                                                                                     */
     /* 0xFFFF_FC00  0x0000_0100  PMC                                                           */
     /* 0xFFFF_FD00  0x0000_0010  RSTC               TODO: Only minimal implementation for now  */
@@ -180,6 +187,13 @@ static void iobc_init(MachineState *machine)
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_dbgu), 0, 0xFFFFF200);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_dbgu), 0, s->irq_sysc[1]);
 
+    // Parallel Input Ouput Controller
+    s->dev_pio_a = sysbus_create_simple(TYPE_AT91_PIO, 0xFFFFF400, s->irq_aic[2]);
+    s->dev_pio_b = sysbus_create_simple(TYPE_AT91_PIO, 0xFFFFF600, s->irq_aic[3]);
+    s->dev_pio_c = sysbus_create_simple(TYPE_AT91_PIO, 0xFFFFF800, s->irq_aic[4]);
+
+    // TODO: connect PIO(A,B,C) peripheral pins
+
     // other peripherals
     s->dev_rstc = sysbus_create_simple(TYPE_AT91_RSTC, 0xFFFFFD00, s->irq_sysc[2]);
     s->dev_pit  = sysbus_create_simple(TYPE_AT91_PIT,  0xFFFFFD30, s->irq_sysc[3]);
@@ -215,9 +229,6 @@ static void iobc_init(MachineState *machine)
     create_unimplemented_device("iobc.periph.ecc",     0xFFFFE800, 0x200);
     create_unimplemented_device("iobc.periph.sdramc",  0xFFFFEA00, 0x200);
     create_unimplemented_device("iobc.periph.smc",     0xFFFFEC00, 0x200);
-    create_unimplemented_device("iobc.periph.pioa",    0xFFFFF400, 0x200);
-    create_unimplemented_device("iobc.periph.piob",    0xFFFFF600, 0x200);
-    create_unimplemented_device("iobc.periph.pioc",    0xFFFFF800, 0x200);
 
     create_unimplemented_device("iobc.periph.shdwc",   0xFFFFFD10, 0x10);
     create_unimplemented_device("iobc.periph.rtt",     0xFFFFFD20, 0x10);
