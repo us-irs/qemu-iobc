@@ -1,6 +1,10 @@
 #include "at91-pmc.h"
 #include "qemu/error-report.h"
 
+// TODO: simulate SR_MCKRDY
+//       Currently, SR_MCKRDY is set instantly on clock change.
+//       In reality, SR_MCKRDY should be unset for some time.
+
 #define CLOCK_FREQ_SLOW        32768    // slow clock oscillator frequency
 #define CLOCK_FREQ_MAIN     18432000    // main oscillator frequency
 
