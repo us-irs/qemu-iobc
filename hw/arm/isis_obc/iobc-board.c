@@ -18,7 +18,15 @@
 #include "at91-matrix.h"
 #include "at91-rstc.h"
 #include "at91-pio.h"
+#include "at91-usart.h"
 
+
+#define SOCKET_USART0   "/tmp/qemu_at91_usart0"
+#define SOCKET_USART1   "/tmp/qemu_at91_usart1"
+#define SOCKET_USART2   "/tmp/qemu_at91_usart2"
+#define SOCKET_USART3   "/tmp/qemu_at91_usart3"
+#define SOCKET_USART4   "/tmp/qemu_at91_usart4"
+#define SOCKET_USART5   "/tmp/qemu_at91_usart5"
 
 
 static struct arm_boot_info iobc_board_binfo = {
@@ -48,6 +56,12 @@ typedef struct {
     DeviceState *dev_pio_a;
     DeviceState *dev_pio_b;
     DeviceState *dev_pio_c;
+    DeviceState *dev_usart0;
+    DeviceState *dev_usart1;
+    DeviceState *dev_usart2;
+    DeviceState *dev_usart3;
+    DeviceState *dev_usart4;
+    DeviceState *dev_usart5;
 
     qemu_irq irq_aic[32];
     qemu_irq irq_sysc[32];
@@ -73,6 +87,12 @@ static void iobc_mkclk_changed(void *opaque, unsigned clock)
 
     info_report("at91 master clock changed: %d", clock);
     at91_pit_set_master_clock(AT91_PIT(s->dev_pit), clock);
+    at91_usart_set_master_clock(AT91_USART(s->dev_usart0), clock);
+    at91_usart_set_master_clock(AT91_USART(s->dev_usart1), clock);
+    at91_usart_set_master_clock(AT91_USART(s->dev_usart2), clock);
+    at91_usart_set_master_clock(AT91_USART(s->dev_usart3), clock);
+    at91_usart_set_master_clock(AT91_USART(s->dev_usart4), clock);
+    at91_usart_set_master_clock(AT91_USART(s->dev_usart5), clock);
 }
 
 static void iobc_init(MachineState *machine)
@@ -96,6 +116,16 @@ static void iobc_init(MachineState *machine)
     /*                                                                                         */
     /* 0x1000_0000  0x1000_0000  NOR Program Flash  Gets loaded with program code              */
     /* 0x2000_0000  0x1000_0000  SDRAM              Copied from NOR Flash at boot via hardware */
+    /* ...                                                                                     */
+    /*                                                                                         */
+    /* ...                                                                                     */
+    /* 0xFFFB_0000  0x0000_4000  USART0                                                        */
+    /* 0xFFFB_4000  0x0000_4000  USART1                                                        */
+    /* 0xFFFB_8000  0x0000_4000  USART2                                                        */
+    /* ...                                                                                     */
+    /* 0xFFFD_0000  0x0000_4000  USART3                                                        */
+    /* 0xFFFD_4000  0x0000_4000  USART4                                                        */
+    /* 0xFFFD_8000  0x0000_4000  USART5                                                        */
     /* ...                                                                                     */
     /*                                                                                         */
     /* ...                                                                                     */
@@ -195,6 +225,42 @@ static void iobc_init(MachineState *machine)
 
     // TODO: connect PIO(A,B,C) peripheral pins
 
+    // USARTs
+    s->dev_usart0 = qdev_create(NULL, TYPE_AT91_USART);
+    qdev_prop_set_string(s->dev_usart0, "socket", SOCKET_USART0);
+    qdev_init_nofail(s->dev_usart0);
+    sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_usart0), 0, 0xFFFB0000);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_usart0), 0, s->irq_aic[6]);
+
+    s->dev_usart1 = qdev_create(NULL, TYPE_AT91_USART);
+    qdev_prop_set_string(s->dev_usart1, "socket", SOCKET_USART1);
+    qdev_init_nofail(s->dev_usart1);
+    sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_usart1), 0, 0xFFFB4000);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_usart1), 0, s->irq_aic[7]);
+
+    s->dev_usart2 = qdev_create(NULL, TYPE_AT91_USART);
+    qdev_prop_set_string(s->dev_usart2, "socket", SOCKET_USART2);
+    qdev_init_nofail(s->dev_usart2);
+    sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_usart2), 0, 0xFFFB8000);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_usart2), 0, s->irq_aic[8]);
+
+    s->dev_usart3 = qdev_create(NULL, TYPE_AT91_USART);
+    qdev_prop_set_string(s->dev_usart3, "socket", SOCKET_USART3);
+    qdev_init_nofail(s->dev_usart3);
+    sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_usart3), 0, 0xFFFD0000);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_usart3), 0, s->irq_aic[23]);
+
+    s->dev_usart4 = qdev_create(NULL, TYPE_AT91_USART);
+    qdev_prop_set_string(s->dev_usart4, "socket", SOCKET_USART4);
+    qdev_init_nofail(s->dev_usart4);
+    sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_usart4), 0, 0xFFFD4000);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_usart4), 0, s->irq_aic[24]);
+
+    s->dev_usart5 = qdev_create(NULL, TYPE_AT91_USART);
+    qdev_prop_set_string(s->dev_usart5, "socket", SOCKET_USART5);
+    qdev_init_nofail(s->dev_usart5);
+    sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_usart5), 0, 0xFFFD8000);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_usart5), 0, s->irq_aic[25]);
 
     // other peripherals
     s->dev_rstc = sysbus_create_simple(TYPE_AT91_RSTC, 0xFFFFFD00, s->irq_sysc[2]);
@@ -214,17 +280,11 @@ static void iobc_init(MachineState *machine)
     create_unimplemented_device("iobc.periph.udp",     0xFFFA4000, 0x4000);
     create_unimplemented_device("iobc.periph.mci",     0xFFFA8000, 0x4000);
     create_unimplemented_device("iobc.periph.twi",     0xFFFAC000, 0x4000);
-    create_unimplemented_device("iobc.periph.usart0",  0xFFFB0000, 0x4000);
-    create_unimplemented_device("iobc.periph.usart1",  0xFFFB4000, 0x4000);
-    create_unimplemented_device("iobc.periph.usart2",  0xFFFB8000, 0x4000);
     create_unimplemented_device("iobc.periph.ssc",     0xFFFBC000, 0x4000);
     create_unimplemented_device("iobc.periph.isi",     0xFFFC0000, 0x4000);
     create_unimplemented_device("iobc.periph.emac",    0xFFFC4000, 0x4000);
     create_unimplemented_device("iobc.periph.spi0",    0xFFFC8000, 0x4000);
     create_unimplemented_device("iobc.periph.spi1",    0xFFFCC000, 0x4000);
-    create_unimplemented_device("iobc.periph.usart3",  0xFFFD0000, 0x4000);
-    create_unimplemented_device("iobc.periph.usart4",  0xFFFD4000, 0x4000);
-    create_unimplemented_device("iobc.periph.usart5",  0xFFFD8000, 0x4000);
     create_unimplemented_device("iobc.periph.tc345",   0xFFFDC000, 0x4000);
     create_unimplemented_device("iobc.periph.adc",     0xFFFE0000, 0x4000);
 
