@@ -19,11 +19,6 @@ static uint64_t matrix_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
     MatrixState *s = opaque;
 
-    if (size != 0x04) {
-        error_report("at91.matrix: illegal read access at 0x%02lx with size: 0x%02x", offset, size);
-        abort();
-    }
-
     info_report("at91.matrix: read access at 0x%02lx with size: 0x%02x", offset, size);
 
     switch (offset) {
@@ -41,12 +36,6 @@ static uint64_t matrix_mmio_read(void *opaque, hwaddr offset, unsigned size)
 static void matrix_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
     MatrixState *s = opaque;
-
-    if (size != 0x04) {
-        error_report("at91.matrix: illegal write access at 0x%02lx with size: 0x%02x [value: 0x%08lx]",
-                     offset, size, value);
-        abort();
-    }
 
     info_report("at91.matrix: write access at 0x%02lx with size: 0x%02x [value: 0x%08lx]",
                 offset, size, value);

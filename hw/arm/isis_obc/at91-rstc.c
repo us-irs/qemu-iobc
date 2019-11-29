@@ -29,11 +29,6 @@ static uint64_t rstc_mmio_read(void *opaque, hwaddr offset, unsigned size)
     RstcState *s = opaque;
     uint32_t sr;
 
-    if (size != 0x04) {
-        error_report("at91.rstc: illegal read access at 0x%02lx with size: 0x%02x", offset, size);
-        abort();
-    }
-
     switch (offset) {
     case RSTC_SR:
         sr = s->reg_sr;
@@ -53,12 +48,6 @@ static uint64_t rstc_mmio_read(void *opaque, hwaddr offset, unsigned size)
 static void rstc_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
     RstcState *s = opaque;
-
-    if (size != 0x04) {
-        error_report("at91.rstc: illegal write access at 0x%02lx with size: 0x%02x [value: 0x%08lx]",
-                     offset, size, value);
-        abort();
-    }
 
     // check for the correct access key
     if (((value >> 24) & 0xFF) != RSTC_KEY_PASSWORD) {
