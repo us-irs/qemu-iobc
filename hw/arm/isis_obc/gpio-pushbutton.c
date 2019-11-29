@@ -23,23 +23,23 @@ static gboolean ioc_handle_event(QIOChannel *ioc, GIOCondition condition, gpoint
     ret = qio_channel_read(QIO_CHANNEL(s->ioc), (char *)&cmd, sizeof(struct gpio_pb_cmd), NULL);
     if (ret < 0) {
         error_report("gpio-pushbuttons: error receiving command data: %ld", ret);
-        return false;
+        return G_SOURCE_REMOVE;
     }
 
     if (ret < sizeof(struct gpio_pb_cmd)) {
         error_report("gpio-pushbuttons: incomplete command data");
-        return true;
+        return G_SOURCE_CONTINUE;
     }
 
     if (cmd.number >= 32) {
         error_report("gpio-pushbuttons: invalid command data");
-        return true;
+        return G_SOURCE_CONTINUE;
     }
 
     info_report("gpio-pushbuttons: set gpio %d to %d", cmd.number, cmd.value);
     qemu_set_irq(s->buttons[cmd.number], !!cmd.value);
 
-    return true;
+    return G_SOURCE_CONTINUE;
 }
 
 static void gpio_pushbutton_server_setup(GpioPushbuttonState *s, Error **errp)
