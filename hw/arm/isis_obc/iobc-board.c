@@ -19,8 +19,6 @@
 #include "at91-rstc.h"
 #include "at91-pio.h"
 
-#include "gpio-led.h"
-#include "gpio-pushbutton.h"
 
 
 static struct arm_boot_info iobc_board_binfo = {
@@ -83,9 +81,6 @@ static void iobc_init(MachineState *machine)
     IobcBoardState *s = g_new(IobcBoardState, 1);
     char *firmware_path;
     int i;
-
-    DeviceState *led1, *led2;
-    DeviceState *pbs;
 
     s->cpu = ARM_CPU(cpu_create(machine->cpu_type));
 
@@ -200,22 +195,6 @@ static void iobc_init(MachineState *machine)
 
     // TODO: connect PIO(A,B,C) peripheral pins
 
-    // testing: GPIO LEDs
-    led1 = qdev_create(NULL, TYPE_GPIO_LED);
-    qdev_prop_set_string(led1, "name", "1");
-    qdev_init_nofail(led1);
-    qdev_connect_gpio_out_named(s->dev_pio_a, "pin.out", 9, qdev_get_gpio_in_named(led1, "led", 0));
-
-    led2 = qdev_create(NULL, TYPE_GPIO_LED);
-    qdev_prop_set_string(led2, "name", "2");
-    qdev_init_nofail(led2);
-    qdev_connect_gpio_out_named(s->dev_pio_a, "pin.out", 6, qdev_get_gpio_in_named(led2, "led", 0));
-
-    // testing: GPIO Push-Buttons
-    pbs = qdev_create(NULL, TYPE_GPIO_PUSHBUTTON);
-    qdev_init_nofail(pbs);
-    qdev_connect_gpio_out_named(pbs, "pushbutton", 0, qdev_get_gpio_in_named(s->dev_pio_a, "pin.in", 30));
-    qdev_connect_gpio_out_named(pbs, "pushbutton", 1, qdev_get_gpio_in_named(s->dev_pio_a, "pin.in", 31));
 
     // other peripherals
     s->dev_rstc = sysbus_create_simple(TYPE_AT91_RSTC, 0xFFFFFD00, s->irq_sysc[2]);
