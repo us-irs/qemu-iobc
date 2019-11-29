@@ -116,12 +116,6 @@ static uint64_t pmc_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
     PmcState *s = opaque;
 
-    if (size != 0x04) {
-        error_report("at91.pmc illegal read access at "
-                      "0x%08lx with size: 0x%02x", offset, size);
-        abort();
-    }
-
     switch (offset) {
     case PMC_SCSR:
         return s->reg_pmc_scsr;
@@ -168,13 +162,6 @@ static uint64_t pmc_mmio_read(void *opaque, hwaddr offset, unsigned size)
 static void pmc_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
     PmcState *s = opaque;
-
-    if (size != 0x04) {
-        error_report("at91.pmc illegal write access at "
-                      "0x%08lx with size: 0x%02x [value: 0x%08lx]",
-                      offset, size, value);
-        abort();
-    }
 
     switch (offset) {
     case PMC_SCER:

@@ -99,12 +99,6 @@ static uint64_t dbgu_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
     DbguState *s = opaque;
 
-    if (size != 0x04) {
-        error_report("at91.dbgu illegal read access at "
-                      "0x%03lx with size: 0x%02x", offset, size);
-        abort();
-    }
-
     switch (offset) {
     case DBGU_MR:
         return s->reg_mr;
@@ -148,13 +142,6 @@ static void dbgu_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigne
 {
     DbguState *s = opaque;
     uint8_t ch;
-
-    if (size != 0x04) {
-        error_report("at91.dbgu illegal write access at "
-                      "0x%03lx with size: 0x%02x [value: 0x%08lx]",
-                      offset, size, value);
-        abort();
-    }
 
     switch (offset) {
     case DBGU_CR:

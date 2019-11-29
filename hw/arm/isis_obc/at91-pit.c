@@ -59,11 +59,6 @@ static uint64_t pit_mmio_read(void *opaque, hwaddr offset, unsigned size)
     PitState *s = opaque;
     uint32_t picnt, cpiv;
 
-    if (size != 0x04) {
-        error_report("at91.pit: illegal read access at 0x%02lx with size: 0x%02x", offset, size);
-        abort();
-    }
-
     switch (offset) {
     case PIT_MR:
         return s->reg_mr;
@@ -94,12 +89,6 @@ static uint64_t pit_mmio_read(void *opaque, hwaddr offset, unsigned size)
 static void pit_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
     PitState *s = opaque;
-
-    if (size != 0x04) {
-        error_report("at91.pit: illegal write access at 0x%02lx with size: 0x%02x [value: 0x%08lx]",
-                     offset, size, value);
-        abort();
-    }
 
     switch (offset) {
     case PIT_MR:
