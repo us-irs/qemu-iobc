@@ -34,8 +34,6 @@ static uint64_t rstc_mmio_read(void *opaque, hwaddr offset, unsigned size)
         abort();
     }
 
-    info_report("at91.rstc: read access at 0x%02lx with size: 0x%02x", offset, size);
-
     switch (offset) {
     case RSTC_SR:
         sr = s->reg_sr;
@@ -61,9 +59,6 @@ static void rstc_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigne
                      offset, size, value);
         abort();
     }
-
-    info_report("at91.rstc: write access at 0x%02lx with size: 0x%02x [value: 0x%08lx]",
-                offset, size, value);
 
     // check for the correct access key
     if (((value >> 24) & 0xFF) != RSTC_KEY_PASSWORD) {
