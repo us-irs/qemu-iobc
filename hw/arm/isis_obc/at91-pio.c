@@ -147,11 +147,6 @@ static uint64_t pio_mmio_read(void *opaque, hwaddr offset, unsigned size)
     PioState *s = opaque;
     uint32_t tmp;
 
-    if (size != 0x04) {
-        error_report("at91.pio: illegal read access at 0x%02lx with size: 0x%02x", offset, size);
-        abort();
-    }
-
     switch (offset) {
     case PIO_PSR:
         return s->reg_psr;
@@ -198,12 +193,6 @@ static uint64_t pio_mmio_read(void *opaque, hwaddr offset, unsigned size)
 static void pio_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
     PioState *s = opaque;
-
-    if (size != 0x04) {
-        error_report("at91.pio: illegal write access at 0x%02lx with size: 0x%02x [value: 0x%08lx]",
-                     offset, size, value);
-        abort();
-    }
 
     switch (offset) {
     case PIO_PER:
