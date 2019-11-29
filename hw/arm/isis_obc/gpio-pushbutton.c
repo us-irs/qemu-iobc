@@ -5,10 +5,11 @@
 #include "io/channel-socket.h"
 
 
+__attribute__ ((packed))
 struct gpio_pb_cmd {
     uint8_t number;
     uint8_t value;
-} __packed;
+};
 
 
 #define GPIO_PB_PORT    "6000"
