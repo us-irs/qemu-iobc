@@ -4,6 +4,7 @@ obj-y += ioxfer-server.o
 obj-y += at91-pmc.o
 obj-y += at91-aic.o
 obj-y += at91-aic_stub.o
+obj-y += at91-rtt.o
 obj-y += at91-pit.o
 obj-y += at91-rstc.o
 obj-y += at91-matrix.o
