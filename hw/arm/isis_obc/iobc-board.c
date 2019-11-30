@@ -14,6 +14,7 @@
 #include "at91-aic.h"
 #include "at91-aic_stub.h"
 #include "at91-dbgu.h"
+#include "at91-rtt.h"
 #include "at91-pit.h"
 #include "at91-matrix.h"
 #include "at91-rstc.h"
@@ -50,6 +51,7 @@ typedef struct {
     DeviceState *dev_aic;
     DeviceState *dev_aic_stub;
     DeviceState *dev_rstc;
+    DeviceState *dev_rtt;
     DeviceState *dev_pit;
     DeviceState *dev_dbgu;
     DeviceState *dev_matrix;
@@ -139,6 +141,7 @@ static void iobc_init(MachineState *machine)
     /* 0xFFFF_FC00  0x0000_0100  PMC                                                           */
     /* 0xFFFF_FD00  0x0000_0010  RSTC               TODO: Only minimal implementation for now  */
     /* ...                                                                                     */
+    /* 0xFFFF_FD20  0x0000_0010  RTT                                                           */
     /* 0xFFFF_FD30  0x0000_0010  PIT                                                           */
     /* ...                                                                                     */
 
@@ -264,7 +267,8 @@ static void iobc_init(MachineState *machine)
 
     // other peripherals
     s->dev_rstc = sysbus_create_simple(TYPE_AT91_RSTC, 0xFFFFFD00, s->irq_sysc[2]);
-    s->dev_pit  = sysbus_create_simple(TYPE_AT91_PIT,  0xFFFFFD30, s->irq_sysc[3]);
+    s->dev_rtt  = sysbus_create_simple(TYPE_AT91_RTT,  0xFFFFFD20, s->irq_sysc[3]);
+    s->dev_pit  = sysbus_create_simple(TYPE_AT91_PIT,  0xFFFFFD30, s->irq_sysc[4]);
 
     // currently unimplemented things...
     create_unimplemented_device("iobc.internal.uhp",   0x00500000, 0x4000);
@@ -293,7 +297,6 @@ static void iobc_init(MachineState *machine)
     create_unimplemented_device("iobc.periph.smc",     0xFFFFEC00, 0x200);
 
     create_unimplemented_device("iobc.periph.shdwc",   0xFFFFFD10, 0x10);
-    create_unimplemented_device("iobc.periph.rtt",     0xFFFFFD20, 0x10);
     create_unimplemented_device("iobc.periph.wdt",     0xFFFFFD40, 0x10);
     create_unimplemented_device("iobc.periph.gpbr",    0xFFFFFD50, 0x10);
 
