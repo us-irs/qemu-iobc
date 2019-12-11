@@ -54,3 +54,17 @@ This opens a Unix domain socket at `/tmp/qemu`.
 Commands can be automatically sent to this socket, e.g. from the simulation and testing framework.
 Specifying the `-S` option causes QEMU to initially pause the emulation, otherwise it would start immediately.
 Once the simulation framework is fully connected, it can then send a QMP `cont` command to continue emulation.
+
+### Running without Graphics
+
+By default, QEMU tries to launch a window which requires some graphics system (X11/Wayland) to be present.
+If this is not available, e.g. in a virtual machine or container, one can add the
+```
+-serial stdio -monitor none
+```
+options.
+The first option redirects the output of the emulated OBSW/the At91 to the standard I/O stream.
+The second option disables the monitor interface, which can be used to pause or exit the emulator or control it in any other way.
+For automated testing, this level of control is usually not required, and if so it is available via QMP.
+If the monitor interface is needed nontheless (e.g. in an interactive session), one could open a telnet server, e.g. via `-monitor telnet:127.0.0.1:55555,server` and then connect to it via `telnet 127.0.0.1 55555`.
+Please refer to the [QEMU documentation](https://qemu.weilnetz.de/doc/qemu-doc.html) for more details.
