@@ -368,15 +368,18 @@ static void xfer_chr_transmit(UsartState *s, uint16_t chr, bool txsynh)
 }
 
 
-static void xfer_dma_rx_start(UsartState *s)
+static void xfer_dma_rx_start(void *opaque)
 {
+    UsartState *s = opaque;
+
     s->rx_dma_enabled = true;
     if (s->reg_csr & CSR_RXRDY)
         xfer_receiver_dma(s);
 }
 
-static void xfer_dma_rx_stop(UsartState *s)
+static void xfer_dma_rx_stop(void *opaque)
 {
+    UsartState *s = opaque;
     s->rx_dma_enabled = false;
 }
 
@@ -403,8 +406,10 @@ static int xfer_dma_tx_do_tcr(UsartState *s)
     return status;
 }
 
-static void xfer_dma_tx_start(UsartState *s)
+static void xfer_dma_tx_start(void *opaque)
 {
+    UsartState *s = opaque;
+
     if (s->pdc.reg_tcr) {
         int status = xfer_dma_tx_do_tcr(s);
         if (status) {
@@ -431,9 +436,9 @@ static void xfer_dma_tx_start(UsartState *s)
     update_irq(s);
 }
 
-static void xfer_dma_tx_stop(UsartState *s)
+static void xfer_dma_tx_stop(void *opaque)
 {
-    /* no-op, intended for documenation */
+    /* no-op */
 }
 
 
@@ -585,7 +590,7 @@ static uint64_t usart_mmio_read(void *opaque, hwaddr offset, unsigned size)
         return at91_pdc_get_register(&s->pdc, offset);
 
     default:
-        error_report("at91.usart illegal read access at 0x%03lx", offset);
+        error_report("at91.usart: illegal read access at 0x%03lx", offset);
         abort();
     }
 }
@@ -789,62 +794,27 @@ static void usart_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsign
         break;
 
     case PDC_START...PDC_END:
-        switch (at91_pdc_set_register(&s->pdc, offset, value)) {
-        case AT91_PDC_ACTION_NONE:
-            break;      // nothing to do
+        {
+            At91PdcOps ops = {
+                .opaque = s,
+                .dma_rx_start = xfer_dma_rx_start,
+                .dma_rx_stop  = xfer_dma_rx_stop,
+                .dma_tx_start = xfer_dma_tx_start,
+                .dma_tx_stop  = xfer_dma_tx_stop,
+                .flag_endrx   = CSR_ENDRX,
+                .flag_endtx   = CSR_ENDTX,
+                .flag_rxbuff  = CSR_RXBUFF,
+                .flag_txbufe  = CSR_TXBUFE,
+                .reg_sr       = &s->reg_csr,
+            };
 
-        case AT91_PDC_ACTION_STATE:
-            if (s->pdc.reg_ptsr & PTSR_RXTEN) {
-                xfer_dma_rx_start(s);
-            } else {
-                s->reg_csr &= ~CSR_ENDRX;
-                s->reg_csr &= ~CSR_RXBUFF;
-
-                xfer_dma_rx_stop(s);
-            }
-
-            if (s->pdc.reg_ptsr & PTSR_TXTEN) {
-                xfer_dma_tx_start(s);
-            } else {
-                s->reg_csr &= ~CSR_ENDTX;
-                s->reg_csr &= ~CSR_TXBUFE;
-
-                xfer_dma_tx_stop(s);
-            }
-
-            break;
-
-        case AT91_PDC_ACTION_START_RX:
-            xfer_dma_rx_start(s);
-            break;
-
-        case AT91_PDC_ACTION_STOP_RX:
-            xfer_dma_rx_stop(s);
-            break;
-
-        case AT91_PDC_ACTION_START_TX:
-            xfer_dma_tx_start(s);
-            break;
-
-        case AT91_PDC_ACTION_STOP_TX:
-            xfer_dma_tx_stop(s);
-            break;
+            at91_pdc_generic_set_register(&s->pdc, &ops, offset, value);
+            update_irq(s);
         }
-
-        if (value && (offset == PDC_RCR || offset == PDC_RNCR)) {
-            s->reg_csr &= ~CSR_ENDRX;
-            s->reg_csr &= ~CSR_RXBUFF;
-        }
-
-        if (value && (offset == PDC_TCR || offset == PDC_TNCR)) {
-            s->reg_csr &= ~CSR_ENDTX;
-            s->reg_csr &= ~CSR_TXBUFE;
-        }
-
         break;
 
     default:
-        error_report("at91.usart illegal write access at "
+        error_report("at91.usart: illegal write access at "
                       "0x%03lx [value: 0x%08lx]", offset, value);
         abort();
     }
