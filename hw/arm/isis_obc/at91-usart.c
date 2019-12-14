@@ -518,21 +518,10 @@ static void iox_receive(struct iox_data_frame *frame, void *opaque)
 
 static int iox_send_chars(UsartState *s, uint8_t* data, unsigned len)
 {
-    int status;
-
     if (!s->server)
         return 0;
 
-    while (len > 0xff) {
-        status = iox_send_data_new(s->server, IOX_CAT_DATA, IOX_CID_DATA_OUT, 0xff, data);
-        if (status)
-            return status;
-
-        len -= 0xff;
-        data += 0xff;
-    }
-
-    return iox_send_data_new(s->server, IOX_CAT_DATA, IOX_CID_DATA_OUT, len, data);
+    return iox_send_data_multiframe_new(s->server, IOX_CAT_DATA, IOX_CID_DATA_OUT, len, data);
 }
 
 
