@@ -295,23 +295,27 @@ static void xfer_receiver_dma_rcr(UsartState *s)
     s->pdc.reg_rcr -= len;
 }
 
+static void xfer_receiver_dma_rhr(UsartState *s)
+{
+    MemTxAttrs attrs = MEMTXATTRS_UNSPECIFIED;
+    uint8_t chr = s->reg_rhr & RHR_RXCHR;
+
+    MemTxResult result = address_space_rw(&address_space_memory, s->pdc.reg_rpr, attrs, &chr, 1, true);
+    if (result) {
+        error_report("at91.usart: failed to write memory: %d", result);
+        abort();
+    }
+
+    s->pdc.reg_rpr += 1;
+    s->pdc.reg_rcr -= 1;
+    s->reg_csr &= ~CSR_RXRDY;
+}
+
 static void __xfer_receiver_dma(UsartState *s)
 {
     // read from RHR
     if (s->reg_csr & CSR_RXRDY) {
-        MemTxAttrs attrs = MEMTXATTRS_UNSPECIFIED;
-        uint8_t chr = s->reg_rhr & RHR_RXCHR;
-
-        MemTxResult result = address_space_rw(&address_space_memory, s->pdc.reg_rpr, attrs, &chr, 1, true);
-        if (result) {
-            error_report("at91.usart: failed to write memory: %d", result);
-            abort();
-        }
-
-        s->pdc.reg_rpr += 1;
-        s->pdc.reg_rcr -= 1;
-        s->reg_csr &= ~CSR_RXRDY;
-
+        xfer_receiver_dma_rhr(s);
         xfer_receiver_dma_updreg(s);
     }
 
