@@ -28,6 +28,8 @@ typedef struct {
     char* socket;
     IoXferServer *server;
     Buffer rcvbuf;
+    Buffer sendbuf;
+    ptimer_state *chrtx_timer;
 
     TwiMode mode;
     unsigned mclk;
