@@ -20,8 +20,10 @@
 #include "at91-rstc.h"
 #include "at91-pio.h"
 #include "at91-usart.h"
+#include "at91-twi.h"
 
 
+#define SOCKET_TWI      "/tmp/qemu_at91_twi"
 #define SOCKET_USART0   "/tmp/qemu_at91_usart0"
 #define SOCKET_USART1   "/tmp/qemu_at91_usart1"
 #define SOCKET_USART2   "/tmp/qemu_at91_usart2"
@@ -64,6 +66,7 @@ typedef struct {
     DeviceState *dev_usart3;
     DeviceState *dev_usart4;
     DeviceState *dev_usart5;
+    DeviceState *dev_twi;
 
     qemu_irq irq_aic[32];
     qemu_irq irq_sysc[32];
@@ -228,6 +231,13 @@ static void iobc_init(MachineState *machine)
 
     // TODO: connect PIO(A,B,C) peripheral pins
 
+    // TWI
+    s->dev_twi = qdev_create(NULL, TYPE_AT91_TWI);
+    qdev_prop_set_string(s->dev_twi, "socket", SOCKET_TWI);
+    qdev_init_nofail(s->dev_twi);
+    sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_twi), 0, 0xFFFAC000);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_twi), 0, s->irq_aic[11]);
+
     // USARTs
     s->dev_usart0 = qdev_create(NULL, TYPE_AT91_USART);
     qdev_prop_set_string(s->dev_usart0, "socket", SOCKET_USART0);
@@ -283,7 +293,6 @@ static void iobc_init(MachineState *machine)
     create_unimplemented_device("iobc.periph.tc012",   0xFFFA0000, 0x4000);
     create_unimplemented_device("iobc.periph.udp",     0xFFFA4000, 0x4000);
     create_unimplemented_device("iobc.periph.mci",     0xFFFA8000, 0x4000);
-    create_unimplemented_device("iobc.periph.twi",     0xFFFAC000, 0x4000);
     create_unimplemented_device("iobc.periph.ssc",     0xFFFBC000, 0x4000);
     create_unimplemented_device("iobc.periph.isi",     0xFFFC0000, 0x4000);
     create_unimplemented_device("iobc.periph.emac",    0xFFFC4000, 0x4000);
