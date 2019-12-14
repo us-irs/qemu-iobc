@@ -10,6 +10,7 @@ obj-y += at91-rstc.o
 obj-y += at91-matrix.o
 obj-y += at91-dbgu.o
 obj-y += at91-usart.o
+obj-y += at91-twi.o
 obj-y += at91-pio.o
 obj-y += gpio-led.o
 obj-y += gpio-pushbutton.o
