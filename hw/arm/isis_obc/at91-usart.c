@@ -377,8 +377,7 @@ static void xfer_dma_rx_start(void *opaque)
     UsartState *s = opaque;
 
     s->rx_dma_enabled = true;
-    if (s->reg_csr & CSR_RXRDY)
-        xfer_receiver_dma(s);
+    xfer_receiver_dma(s);
 }
 
 static void xfer_dma_rx_stop(void *opaque)
