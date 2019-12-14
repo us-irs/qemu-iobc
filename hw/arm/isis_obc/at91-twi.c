@@ -86,6 +86,9 @@ static void twi_update_clock(TwiState *s)
     unsigned ldiv = (CWGR_CLDIV(s) * (1 << CWGR_CKDIV(s))) + 4;
     unsigned hdiv = (CWGR_CHDIV(s) * (1 << CWGR_CKDIV(s))) + 4;
     s->clock = s->mclk / (ldiv + hdiv);
+
+    if (s->clock)   // avoid issues during initialization
+        ptimer_set_freq(s->chrtx_timer, s->clock);
 }
 
 void at91_twi_set_master_clock(TwiState *s, unsigned mclk)
@@ -146,12 +149,39 @@ static int xfer_dma_tx_do_tcr(TwiState *s)
     return status;
 }
 
+static void xfer_chrtx_timer_tick(void *opaque)
+{
+    TwiState *s = opaque;
+
+    // If we reach this point, we assuem that the transmission writes to THR
+    // are complete. Send all buffered data with start and stop frames.
+
+    xfer_send_frame_start(s);
+    iox_send_chars(s, s->sendbuf.buffer, s->sendbuf.offset);
+    xfer_send_frame_stop(s);
+
+    buffer_reset(&s->sendbuf);
+    ptimer_stop(s->chrtx_timer);
+
+    s->reg_sr |= SR_TXCOMP;
+    twi_update_irq(s);
+}
+
 static void xfer_chr_transmit(TwiState *s, uint8_t value)
 {
     warn_report("at91.twi: unimplemented xfer_chr_transmit");
     warn_report("          only DMA/PDC transmission supported for now");
 
-    // TODO: start/stop frames via shift register and timeout?
+    buffer_reserve(&s->sendbuf, 1);
+    buffer_append(&s->sendbuf, &value, 1);
+
+    // the actual send happens when all data has been gathered in the send task
+    // resets timer if already running
+    ptimer_set_limit(s->chrtx_timer, 2 /* load-to-shift, send shift */ , true);
+    ptimer_run(s->chrtx_timer, true);
+
+    s->reg_sr |= SR_TXRDY;
+    twi_update_irq(s);
 }
 
 static void xfer_chr_receive(TwiState *s, uint8_t chr)
@@ -616,11 +646,15 @@ static void twi_device_init(Object *obj)
 {
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
     TwiState *s = AT91_TWI(obj);
+    QEMUBH *bh;
 
     sysbus_init_irq(sbd, &s->irq);
 
     memory_region_init_io(&s->mmio, OBJECT(s), &twi_mmio_ops, s, "at91.twi", 0x4000);
     sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->mmio);
+
+    bh = qemu_bh_new(xfer_chrtx_timer_tick, s);
+    s->chrtx_timer = ptimer_init(bh, PTIMER_POLICY_DEFAULT);
 }
 
 static void twi_reset_registers(TwiState *s)
@@ -648,6 +682,9 @@ static void twi_device_realize(DeviceState *dev, Error **errp)
 
     buffer_init(&s->rcvbuf, "at91.twi.rcvbuf");
     buffer_reserve(&s->rcvbuf, 1024);
+
+    buffer_init(&s->sendbuf, "at91.twi.sendbuf");
+    buffer_reserve(&s->sendbuf, 256);
 
     if (s->socket) {
         SocketAddress addr;
