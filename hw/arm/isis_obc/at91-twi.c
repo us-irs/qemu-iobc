@@ -81,6 +81,19 @@ static void twi_update_irq(TwiState *s)
     qemu_set_irq(s->irq, !!(s->reg_imr & s->reg_sr));
 }
 
+static void twi_update_clock(TwiState *s)
+{
+    unsigned ldiv = (CWGR_CLDIV(s) * (1 << CWGR_CKDIV(s))) + 4;
+    unsigned hdiv = (CWGR_CHDIV(s) * (1 << CWGR_CKDIV(s))) + 4;
+    s->clock = s->mclk / (ldiv + hdiv);
+}
+
+void at91_twi_set_master_clock(TwiState *s, unsigned mclk)
+{
+    s->mclk = mclk;
+    twi_update_clock(s);
+}
+
 
 static void xfer_send_frame_start(TwiState *s)
 {
@@ -545,6 +558,7 @@ static void twi_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned
 
     case TWI_CWGR:
         s->reg_cwgr = value;
+        twi_update_clock(s);
         break;
 
     case TWI_IER:
@@ -622,6 +636,8 @@ static void twi_reset_registers(TwiState *s)
     s->reg_rhr  = 0;
 
     s->dma_rx_enabled = false;
+
+    twi_update_clock(s);
 }
 
 static void twi_device_realize(DeviceState *dev, Error **errp)

@@ -92,6 +92,7 @@ static void iobc_mkclk_changed(void *opaque, unsigned clock)
 
     info_report("at91 master clock changed: %d", clock);
     at91_pit_set_master_clock(AT91_PIT(s->dev_pit), clock);
+    at91_twi_set_master_clock(AT91_TWI(s->dev_twi), clock);
     at91_usart_set_master_clock(AT91_USART(s->dev_usart0), clock);
     at91_usart_set_master_clock(AT91_USART(s->dev_usart1), clock);
     at91_usart_set_master_clock(AT91_USART(s->dev_usart2), clock);
