@@ -30,6 +30,8 @@ typedef struct {
     Buffer rcvbuf;
 
     TwiMode mode;
+    unsigned mclk;
+    unsigned clock;
 
     uint32_t reg_mmr;
     uint32_t reg_smr;
@@ -42,5 +44,8 @@ typedef struct {
     At91Pdc pdc;
     bool dma_rx_enabled;
 } TwiState;
+
+
+void at91_twi_set_master_clock(TwiState *s, unsigned mclk);
 
 #endif /* HW_ARM_ISIS_OBC_TWI_H */
