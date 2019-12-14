@@ -275,35 +275,39 @@ enum at91_pdc_action at91_pdc_generic_set_register(At91Pdc *pdc, At91PdcOps *ops
         if (pdc->reg_ptsr & PTSR_RXTEN) {
             ops->dma_rx_start(ops->opaque);
         } else {
-            *ops->reg_sr &= ~ops->flag_endrx;
-            *ops->reg_sr &= ~ops->flag_rxbuff;
             ops->dma_rx_stop(ops->opaque);
         }
 
         if (pdc->reg_ptsr & PTSR_TXTEN) {
             ops->dma_tx_start(ops->opaque);
         } else {
-            *ops->reg_sr &= ~ops->flag_endtx;
-            *ops->reg_sr &= ~ops->flag_txbufe;
             ops->dma_tx_stop(ops->opaque);
         }
 
         break;
 
     case AT91_PDC_ACTION_START_RX:
+        *ops->reg_sr &= ~ops->flag_endrx;
+        *ops->reg_sr &= ~ops->flag_rxbuff;
         ops->dma_rx_start(ops->opaque);
         break;
 
     case AT91_PDC_ACTION_STOP_RX:
         ops->dma_rx_stop(ops->opaque);
+        *ops->reg_sr &= ~ops->flag_endrx;
+        *ops->reg_sr &= ~ops->flag_rxbuff;
         break;
 
     case AT91_PDC_ACTION_START_TX:
+        *ops->reg_sr &= ~ops->flag_endtx;
+        *ops->reg_sr &= ~ops->flag_txbufe;
         ops->dma_tx_start(ops->opaque);
         break;
 
     case AT91_PDC_ACTION_STOP_TX:
         ops->dma_tx_stop(ops->opaque);
+        *ops->reg_sr &= ~ops->flag_endtx;
+        *ops->reg_sr &= ~ops->flag_txbufe;
         break;
     }
 
