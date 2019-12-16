@@ -125,6 +125,7 @@ static void iobc_init(MachineState *machine)
     /* ...                                                                                     */
     /*                                                                                         */
     /* ...                                                                                     */
+    /* 0xFFFA_C000  0x0000_4000  TWI                TODO: Slave Mode                           */
     /* 0xFFFB_0000  0x0000_4000  USART0                                                        */
     /* 0xFFFB_4000  0x0000_4000  USART1                                                        */
     /* 0xFFFB_8000  0x0000_4000  USART2                                                        */
