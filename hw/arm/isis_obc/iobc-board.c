@@ -138,7 +138,7 @@ static void iobc_init(MachineState *machine)
     /* ...                                                                                     */
     /* 0xFFFF_EE00  0x0000_0200  Matrix             TODO: Only minimal implementation for now  */
     /* 0xFFFF_F000  0x0000_0200  AIC                Uses stub to OR system controller IRQs     */
-    /* 0xFFFF_F200  0x0000_0200  Debug Unit (DBGU)                                             */
+    /* 0xFFFF_F200  0x0000_0200  Debug Unit (DBGU)  TODO: PDC/DMA support not implemented yet  */
     /* 0xFFFF_F400  0x0000_0200  PIO A              TODO: Peripherals not connected yet        */
     /* 0xFFFF_F600  0x0000_0200  PIO B              TODO: Peripherals not connected yet        */
     /* 0xFFFF_F800  0x0000_0200  PIO C              TODO: Peripherals not connected yet        */
