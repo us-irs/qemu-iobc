@@ -105,6 +105,34 @@ int iox_send_data(IoXferServer *srv, uint8_t seq, uint8_t cat, uint8_t id, uint8
     return status;
 }
 
+int iox_send_data_multiframe(IoXferServer *srv, uint8_t seq, uint8_t cat, uint8_t id, unsigned len, uint8_t *data)
+{
+    int status;
+
+    while (len > 0xff) {
+        status = iox_send_data(srv, seq, cat, id, 0xff, data);
+        if (status)
+            return status;
+
+        len -= 0xff;
+        data += 0xff;
+    }
+
+    return iox_send_data(srv, seq, cat, id, len, data);
+}
+
+int iox_send_command(IoXferServer *srv, uint8_t seq, uint8_t cat, uint8_t id)
+{
+    struct iox_data_frame frame = {
+        .seq = seq,
+        .cat = cat,
+        .id  = id,
+        .len = 0,
+    };
+
+    return iox_send_frame(srv, &frame);
+}
+
 int iox_send_u32(IoXferServer *srv, uint8_t seq, uint8_t cat, uint8_t id, uint32_t value)
 {
     uint8_t buf[sizeof(struct iox_data_frame) + sizeof(uint32_t)];

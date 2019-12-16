@@ -29,7 +29,9 @@
 #define PTSR_TXTEN      BIT(8)
 
 
-typedef struct At91Pdc {
+typedef void(*dma_action_cb)(void*);
+
+typedef struct {
     uint32_t reg_ptsr;
 
     uint32_t reg_rpr;
@@ -42,6 +44,19 @@ typedef struct At91Pdc {
     uint16_t reg_tcr;
     uint16_t reg_tncr;
 } At91Pdc;
+
+typedef struct {
+    void *opaque;
+    dma_action_cb dma_tx_start;
+    dma_action_cb dma_tx_stop;
+    dma_action_cb dma_rx_start;
+    dma_action_cb dma_rx_stop;
+    uint32_t flag_endrx;
+    uint32_t flag_endtx;
+    uint32_t flag_rxbuff;
+    uint32_t flag_txbufe;
+    uint32_t *reg_sr;
+} At91PdcOps;
 
 enum at91_pdc_action {
     AT91_PDC_ACTION_NONE = 0,
@@ -244,6 +259,69 @@ enum at91_pdc_action at91_pdc_set_register_hd(At91Pdc *pdc, hwaddr offset, uint3
                      " [value: 0x%08x]", offset, value);
         abort();
     }
+}
+
+
+inline static
+enum at91_pdc_action at91_pdc_generic_set_register(At91Pdc *pdc, At91PdcOps *ops, hwaddr offset, uint32_t value)
+{
+    enum at91_pdc_action action = at91_pdc_set_register(pdc, offset, value);
+
+    switch (action) {
+    case AT91_PDC_ACTION_NONE:
+        break;      // nothing to do
+
+    case AT91_PDC_ACTION_STATE:
+        if (pdc->reg_ptsr & PTSR_RXTEN) {
+            ops->dma_rx_start(ops->opaque);
+        } else {
+            ops->dma_rx_stop(ops->opaque);
+        }
+
+        if (pdc->reg_ptsr & PTSR_TXTEN) {
+            ops->dma_tx_start(ops->opaque);
+        } else {
+            ops->dma_tx_stop(ops->opaque);
+        }
+
+        break;
+
+    case AT91_PDC_ACTION_START_RX:
+        *ops->reg_sr &= ~ops->flag_endrx;
+        *ops->reg_sr &= ~ops->flag_rxbuff;
+        ops->dma_rx_start(ops->opaque);
+        break;
+
+    case AT91_PDC_ACTION_STOP_RX:
+        ops->dma_rx_stop(ops->opaque);
+        *ops->reg_sr &= ~ops->flag_endrx;
+        *ops->reg_sr &= ~ops->flag_rxbuff;
+        break;
+
+    case AT91_PDC_ACTION_START_TX:
+        *ops->reg_sr &= ~ops->flag_endtx;
+        *ops->reg_sr &= ~ops->flag_txbufe;
+        ops->dma_tx_start(ops->opaque);
+        break;
+
+    case AT91_PDC_ACTION_STOP_TX:
+        ops->dma_tx_stop(ops->opaque);
+        *ops->reg_sr &= ~ops->flag_endtx;
+        *ops->reg_sr &= ~ops->flag_txbufe;
+        break;
+    }
+
+    if (value && (offset == PDC_RCR || offset == PDC_RNCR)) {
+        *ops->reg_sr &= ~ops->flag_endrx;
+        *ops->reg_sr &= ~ops->flag_rxbuff;
+    }
+
+    if (value && (offset == PDC_TCR || offset == PDC_TNCR)) {
+        *ops->reg_sr &= ~ops->flag_endtx;
+        *ops->reg_sr &= ~ops->flag_txbufe;
+    }
+
+    return action;
 }
 
 #endif /* HW_ARM_ISIS_OBC_PDC_H */
