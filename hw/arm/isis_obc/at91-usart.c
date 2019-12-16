@@ -8,9 +8,6 @@
 // TODO: simulate shift register / time to send
 // TODO: update US_NER
 
-// TODO: error bits don't abort (DMA) transmission?
-// TODO: is there a timeout for UART_read?
-
 
 #define IOX_CAT_DATA            0x01
 #define IOX_CAT_FAULT           0x02
