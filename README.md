@@ -33,7 +33,7 @@ Note that you only need to re-run the latest step (i.e. `make` from inside the b
 
 From the build directory, run
 ```sh
-./arm-softmmu/qemu-system-arm -m isis-obc -monitor stdio \
+./arm-softmmu/qemu-system-arm -M isis-obc -monitor stdio \
     -bios ./path/to/sourceobsw-at91sam9g20_ek-sdram.bin
 ```
 Due to the current board configuration, only the `sdram` image is supported.
@@ -46,7 +46,7 @@ This way it can be ensured that no initial communication between machine and dev
 
 For this, you will need to add the `-qmp` and `-S` flags, e.g. like this:
 ```sh
-./arm-softmmu/qemu-system-arm -m isis-obc -monitor stdio \
+./arm-softmmu/qemu-system-arm -M isis-obc -monitor stdio \
     -bios ./path/to/sourceobsw-at91sam9g20_ek-sdram.bin \
     -qmp unix:/tmp/qemu,server -S
 ```
