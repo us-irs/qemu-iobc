@@ -612,11 +612,10 @@ static void iox_receive_data(SpiState *s, struct iox_data_frame *frame)
     buffer_append(&s->rcvbuf, frame->payload, frame->len);
 
     if (s->rcvbuf.offset >= s->wait_rcv.n * sizeof(uint32_t)) {
-        xfer_master_wait_receive_finish(s);
-
         if (s->rcvbuf.offset > s->wait_rcv.n * sizeof(uint32_t))
             warn_report("at91.spi: received more data than expected, dropping overflow");
 
+        xfer_master_wait_receive_finish(s);
         buffer_reset(&s->rcvbuf);
     }
 }
