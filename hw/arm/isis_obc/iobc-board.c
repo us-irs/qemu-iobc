@@ -294,7 +294,7 @@ static void iobc_init(MachineState *machine)
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_spi0), 0, s->irq_aic[12]);
 
     s->dev_spi1 = qdev_create(NULL, TYPE_AT91_SPI);
-    qdev_prop_set_string(s->dev_spi1, "socket", SOCKET_SPI0);
+    qdev_prop_set_string(s->dev_spi1, "socket", SOCKET_SPI1);
     qdev_init_nofail(s->dev_spi1);
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_spi1), 0, 0xFFFCC000);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_spi1), 0, s->irq_aic[13]);
