@@ -21,6 +21,7 @@
 #include "at91-pio.h"
 #include "at91-usart.h"
 #include "at91-twi.h"
+#include "at91-spi.h"
 
 
 #define SOCKET_TWI      "/tmp/qemu_at91_twi"
@@ -30,6 +31,8 @@
 #define SOCKET_USART3   "/tmp/qemu_at91_usart3"
 #define SOCKET_USART4   "/tmp/qemu_at91_usart4"
 #define SOCKET_USART5   "/tmp/qemu_at91_usart5"
+#define SOCKET_SPI0     "/tmp/qemu_at91_spi0"
+#define SOCKET_SPI1     "/tmp/qemu_at91_spi1"
 
 
 static struct arm_boot_info iobc_board_binfo = {
@@ -66,6 +69,8 @@ typedef struct {
     DeviceState *dev_usart3;
     DeviceState *dev_usart4;
     DeviceState *dev_usart5;
+    DeviceState *dev_spi0;
+    DeviceState *dev_spi1;
     DeviceState *dev_twi;
 
     qemu_irq irq_aic[32];
@@ -99,6 +104,8 @@ static void iobc_mkclk_changed(void *opaque, unsigned clock)
     at91_usart_set_master_clock(AT91_USART(s->dev_usart3), clock);
     at91_usart_set_master_clock(AT91_USART(s->dev_usart4), clock);
     at91_usart_set_master_clock(AT91_USART(s->dev_usart5), clock);
+    at91_spi_set_master_clock(AT91_SPI(s->dev_spi0), clock);
+    at91_spi_set_master_clock(AT91_SPI(s->dev_spi1), clock);
 }
 
 static void iobc_init(MachineState *machine)
@@ -130,6 +137,8 @@ static void iobc_init(MachineState *machine)
     /* 0xFFFB_4000  0x0000_4000  USART1                                                        */
     /* 0xFFFB_8000  0x0000_4000  USART2                                                        */
     /* ...                                                                                     */
+    /* 0xFFFC_8000  0x0000_4000  SPI0               TODO: slave mode, tx/cs delays             */
+    /* 0xFFFC_C000  0x0000_4000  SPI1               TODO: slave mode, tx/cs delays             */
     /* 0xFFFD_0000  0x0000_4000  USART3                                                        */
     /* 0xFFFD_4000  0x0000_4000  USART4                                                        */
     /* 0xFFFD_8000  0x0000_4000  USART5                                                        */
@@ -277,6 +286,19 @@ static void iobc_init(MachineState *machine)
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_usart5), 0, 0xFFFD8000);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_usart5), 0, s->irq_aic[25]);
 
+    // SPIs
+    s->dev_spi0 = qdev_create(NULL, TYPE_AT91_SPI);
+    qdev_prop_set_string(s->dev_spi0, "socket", SOCKET_SPI0);
+    qdev_init_nofail(s->dev_spi0);
+    sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_spi0), 0, 0xFFFC8000);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_spi0), 0, s->irq_aic[12]);
+
+    s->dev_spi1 = qdev_create(NULL, TYPE_AT91_SPI);
+    qdev_prop_set_string(s->dev_spi1, "socket", SOCKET_SPI1);
+    qdev_init_nofail(s->dev_spi1);
+    sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_spi1), 0, 0xFFFCC000);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_spi1), 0, s->irq_aic[13]);
+
     // other peripherals
     s->dev_rstc = sysbus_create_simple(TYPE_AT91_RSTC, 0xFFFFFD00, s->irq_sysc[2]);
     s->dev_rtt  = sysbus_create_simple(TYPE_AT91_RTT,  0xFFFFFD20, s->irq_sysc[3]);
@@ -298,8 +320,6 @@ static void iobc_init(MachineState *machine)
     create_unimplemented_device("iobc.periph.ssc",     0xFFFBC000, 0x4000);
     create_unimplemented_device("iobc.periph.isi",     0xFFFC0000, 0x4000);
     create_unimplemented_device("iobc.periph.emac",    0xFFFC4000, 0x4000);
-    create_unimplemented_device("iobc.periph.spi0",    0xFFFC8000, 0x4000);
-    create_unimplemented_device("iobc.periph.spi1",    0xFFFCC000, 0x4000);
     create_unimplemented_device("iobc.periph.tc345",   0xFFFDC000, 0x4000);
     create_unimplemented_device("iobc.periph.adc",     0xFFFE0000, 0x4000);
 
