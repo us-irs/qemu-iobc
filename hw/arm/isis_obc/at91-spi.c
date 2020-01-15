@@ -77,9 +77,6 @@
 // TODO: Slave Mode
 // TODO: LASTXFER handling
 
-// TODO: if there's nothing connected to the server, write stuff to buffer,
-//       call xfer_master_wait_receive_finish
-
 
 static void update_irq(SpiState *s)
 {
