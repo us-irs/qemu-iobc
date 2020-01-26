@@ -1,5 +1,10 @@
 #include "at91-sdramc.h"
 #include "qemu/error-report.h"
+#include "qapi/error.h"
+
+
+#define IOX_CAT_FAULT       0x02
+#define IOX_CID_FAULT_RES   0x01
 
 #define SDRAMC_MR       0x00
 #define SDRAMC_TR       0x04
@@ -14,13 +19,28 @@
 #define ISR_RES         BIT(0)
 
 
-// TODO: fault-injection for refresh error
-
-
 static void update_irq(SdramcState *s)
 {
     qemu_set_irq(s->irq, !!(s->reg_imr & s->reg_isr));
 }
+
+
+static void iox_receive(struct iox_data_frame *frame, void *opaque)
+{
+    SdramcState *s = opaque;
+
+    switch (frame->cat) {
+    case IOX_CAT_FAULT:
+        switch (frame->id) {
+        case IOX_CID_FAULT_RES:
+            s->reg_isr |= ISR_RES;
+            update_irq(s);
+            break;
+        }
+        break;
+    }
+}
+
 
 static uint64_t sdramc_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
@@ -138,7 +158,38 @@ static void sdramc_reset_registers(SdramcState *s)
 static void sdramc_device_realize(DeviceState *dev, Error **errp)
 {
     SdramcState *s = AT91_SDRAMC(dev);
+
     sdramc_reset_registers(s);
+
+    if (s->socket) {
+        SocketAddress addr;
+        addr.type = SOCKET_ADDRESS_TYPE_UNIX;
+        addr.u.q_unix.path = s->socket;
+
+        IoXferServer *srv = iox_server_new();
+        if (!srv) {
+            error_set(errp, ERROR_CLASS_GENERIC_ERROR, "cannot allocate server");
+            return;
+        }
+
+        iox_server_set_handler(srv, iox_receive, s);
+
+        if (iox_server_open(srv, &addr, errp))
+            return;
+
+        s->server = srv;
+        info_report("at91.sdramc: listening on %s", s->socket);
+    }
+}
+
+static void sdramc_device_unrealize(DeviceState *dev, Error **errp)
+{
+    SdramcState *s = AT91_SDRAMC(dev);
+
+    if (s->server) {
+        iox_server_free(s->server);
+        s->server = NULL;
+    }
 }
 
 static void sdramc_device_reset(DeviceState *dev)
@@ -147,12 +198,19 @@ static void sdramc_device_reset(DeviceState *dev)
     sdramc_reset_registers(s);
 }
 
+static Property sdramc_device_properties[] = {
+    DEFINE_PROP_STRING("socket", SdramcState, socket),
+    DEFINE_PROP_END_OF_LIST(),
+};
+
 static void sdramc_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
 
     dc->realize = sdramc_device_realize;
+    dc->unrealize = sdramc_device_unrealize;
     dc->reset = sdramc_device_reset;
+    dc->props = sdramc_device_properties;
 }
 
 static const TypeInfo sdramc_device_info = {
