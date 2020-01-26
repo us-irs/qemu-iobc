@@ -14,5 +14,6 @@ arm_ss.add(when: 'CONFIG_ISIS_OBC', if_true: files(
   'at91-twi.c',
   'at91-spi.c',
   'at91-pio.c',
+  'at91-sdramc.c',
   'gpio-led.c' ,
   'gpio-pushbutton.c'))
