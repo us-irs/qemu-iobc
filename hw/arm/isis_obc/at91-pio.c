@@ -1,5 +1,12 @@
 #include "at91-pio.h"
 #include "qemu/error-report.h"
+#include "qapi/error.h"
+
+#define IOX_CAT_PINSTATE            0x01
+#define IOX_CID_PINSTATE_ENABLE     0x01
+#define IOX_CID_PINSTATE_DISABLE    0x02
+#define IOX_CID_PINSTATE_OUT        0x03
+#define IOX_CID_PINSTATE_GET        0x04
 
 #define PIO_PER     0x00
 #define PIO_PDR     0x04
@@ -30,6 +37,62 @@
 #define PIO_OWER    0xA0
 #define PIO_OWDR    0xA4
 #define PIO_OWSR    0xA8
+
+
+static void pio_handle_gpio_pin(void *opaque, int n, int level);
+
+static void iox_pinstate_set(PioState *s, struct iox_data_frame *frame)
+{
+    if (frame->len != sizeof(uint32_t)) {
+        warn_report("at91.pio: invalid pin-enable/-disable command payload");
+        return;
+    }
+
+    uint32_t state = *((uint32_t *)&frame->payload[0]);
+    bool level = frame->id == IOX_CID_PINSTATE_ENABLE;
+
+    for (uint32_t i = 0; i < 32; i++)
+        if (state & (1 << i))
+            pio_handle_gpio_pin(s, i, level);
+}
+
+static void iox_pinstate_get(PioState *s, struct iox_data_frame *frame)
+{
+    int status = iox_send_u32_resp(s->server, frame, s->reg_pdsr);
+    if (status) {
+        error_report("at91.pio: failed to send pin-state");
+        abort();
+    }
+}
+
+static void iox_receive(struct iox_data_frame *frame, void *opaque)
+{
+    PioState *s = opaque;
+
+    switch (frame->cat) {
+    case IOX_CAT_PINSTATE:
+        switch (frame->id) {
+        case IOX_CID_PINSTATE_ENABLE:
+        case IOX_CID_PINSTATE_DISABLE:
+            iox_pinstate_set(s, frame);
+            break;
+
+        case IOX_CID_PINSTATE_GET:
+            iox_pinstate_get(s, frame);
+            break;
+        }
+    }
+
+}
+
+static void iox_send_pin_state(PioState *s)
+{
+    int status = iox_send_u32_new(s->server, IOX_CAT_PINSTATE, IOX_CID_PINSTATE_OUT, s->reg_pdsr);
+    if (status) {
+        error_report("at91.pio: failed to send pin-state");
+        abort();
+    }
+}
 
 
 inline static void pio_update_irq(PioState *s)
@@ -65,6 +128,9 @@ static void pio_update_pins(PioState *s)
     // trigger interrupt on edge/change
     s->reg_isr |= (pdsr ^ s->reg_pdsr);
     pio_update_irq(s);
+
+    if (pdsr != s->reg_pdsr)
+        iox_send_pin_state(s);
 }
 
 
@@ -125,6 +191,7 @@ static void pio_handle_gpio_periph(PioState *s, int periph, int n, int level)
     if (s->reg_pdsr != pdsr) {
         s->reg_isr |= mask;
         pio_update_irq(s);
+        iox_send_pin_state(s);
     }
 
     // set associated output pin
@@ -310,6 +377,8 @@ static void pio_device_init(Object *obj)
 
 static void pio_reset_registers(PioState *s)
 {
+    uint32_t pdsr = s->reg_pdsr;
+
     s->reg_psr  = 0;    // TODO: implementation dependent (Sec. 9.3), implement as property?
     s->reg_osr  = 0;
     s->reg_ifsr = 0;
@@ -321,12 +390,46 @@ static void pio_reset_registers(PioState *s)
     s->reg_pusr = 0;
     s->reg_absr = 0;
     s->reg_owsr = 0;
+
+    if (pdsr != s->reg_pdsr)
+        iox_send_pin_state(s);
 }
 
 static void pio_device_realize(DeviceState *dev, Error **errp)
 {
     PioState *s = AT91_PIO(dev);
+
     pio_reset_registers(s);
+
+    if (s->socket) {
+        SocketAddress addr;
+        addr.type = SOCKET_ADDRESS_TYPE_UNIX;
+        addr.u.q_unix.path = s->socket;
+
+        IoXferServer *srv = iox_server_new();
+        if (!srv) {
+            error_set(errp, ERROR_CLASS_GENERIC_ERROR, "cannot allocate server");
+            return;
+        }
+
+        iox_server_set_handler(srv, iox_receive, s);
+
+        if (iox_server_open(srv, &addr, errp))
+            return;
+
+        s->server = srv;
+        info_report("at91.pio: listening on %s", s->socket);
+    }
+}
+
+static void pio_device_unrealize(DeviceState *dev, Error **errp)
+{
+    PioState *s = AT91_PIO(dev);
+
+    if (s->server) {
+        iox_server_free(s->server);
+        s->server = NULL;
+    }
 }
 
 static void pio_device_reset(DeviceState *dev)
@@ -335,12 +438,19 @@ static void pio_device_reset(DeviceState *dev)
     pio_reset_registers(s);
 }
 
+static Property pio_device_properties[] = {
+    DEFINE_PROP_STRING("socket", PioState, socket),
+    DEFINE_PROP_END_OF_LIST(),
+};
+
 static void pio_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
 
     dc->realize = pio_device_realize;
+    dc->unrealize = pio_device_unrealize;
     dc->reset = pio_device_reset;
+    dc->props = pio_device_properties;
 }
 
 static const TypeInfo pio_device_info = {

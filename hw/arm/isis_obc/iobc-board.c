@@ -33,6 +33,9 @@
 #define SOCKET_USART5   "/tmp/qemu_at91_usart5"
 #define SOCKET_SPI0     "/tmp/qemu_at91_spi0"
 #define SOCKET_SPI1     "/tmp/qemu_at91_spi1"
+#define SOCKET_PIOA     "/tmp/qemu_at91_pioa"
+#define SOCKET_PIOB     "/tmp/qemu_at91_piob"
+#define SOCKET_PIOC     "/tmp/qemu_at91_pioc"
 
 
 static struct arm_boot_info iobc_board_binfo = {
@@ -236,9 +239,23 @@ static void iobc_init(MachineState *machine)
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_dbgu), 0, s->irq_sysc[1]);
 
     // Parallel Input Ouput Controller
-    s->dev_pio_a = sysbus_create_simple(TYPE_AT91_PIO, 0xFFFFF400, s->irq_aic[2]);
-    s->dev_pio_b = sysbus_create_simple(TYPE_AT91_PIO, 0xFFFFF600, s->irq_aic[3]);
-    s->dev_pio_c = sysbus_create_simple(TYPE_AT91_PIO, 0xFFFFF800, s->irq_aic[4]);
+    s->dev_pio_a = qdev_create(NULL, TYPE_AT91_PIO);
+    qdev_prop_set_string(s->dev_pio_a, "socket", SOCKET_PIOA);
+    qdev_init_nofail(s->dev_pio_a);
+    sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_pio_a), 0, 0xFFFFF400);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_pio_a), 0, s->irq_aic[2]);
+
+    s->dev_pio_b = qdev_create(NULL, TYPE_AT91_PIO);
+    qdev_prop_set_string(s->dev_pio_b, "socket", SOCKET_PIOB);
+    qdev_init_nofail(s->dev_pio_b);
+    sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_pio_b), 0, 0xFFFFF600);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_pio_b), 0, s->irq_aic[3]);
+
+    s->dev_pio_c = qdev_create(NULL, TYPE_AT91_PIO);
+    qdev_prop_set_string(s->dev_pio_c, "socket", SOCKET_PIOC);
+    qdev_init_nofail(s->dev_pio_c);
+    sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_pio_c), 0, 0xFFFFF800);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_pio_c), 0, s->irq_aic[4]);
 
     // TODO: connect PIO(A,B,C) peripheral pins
 
