@@ -22,6 +22,7 @@
 #include "at91-usart.h"
 #include "at91-twi.h"
 #include "at91-spi.h"
+#include "at91-sdramc.h"
 
 
 #define SOCKET_TWI      "/tmp/qemu_at91_twi"
@@ -36,6 +37,7 @@
 #define SOCKET_PIOA     "/tmp/qemu_at91_pioa"
 #define SOCKET_PIOB     "/tmp/qemu_at91_piob"
 #define SOCKET_PIOC     "/tmp/qemu_at91_pioc"
+#define SOCKET_SDRAMC   "/tmp/qemu_at91_sdramc"
 
 
 static struct arm_boot_info iobc_board_binfo = {
@@ -75,6 +77,7 @@ typedef struct {
     DeviceState *dev_spi0;
     DeviceState *dev_spi1;
     DeviceState *dev_twi;
+    DeviceState *dev_sdramc;
 
     qemu_irq irq_aic[32];
     qemu_irq irq_sysc[32];
@@ -316,10 +319,17 @@ static void iobc_init(MachineState *machine)
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_spi1), 0, 0xFFFCC000);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_spi1), 0, s->irq_aic[13]);
 
+    // SDRAMC
+    s->dev_sdramc = qdev_create(NULL, TYPE_AT91_SDRAMC);
+    qdev_prop_set_string(s->dev_sdramc, "socket", SOCKET_SDRAMC);
+    qdev_init_nofail(s->dev_sdramc);
+    sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_sdramc), 0, 0xFFFFEA00);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_sdramc), 0, s->irq_sysc[2]);
+
     // other peripherals
-    s->dev_rstc = sysbus_create_simple(TYPE_AT91_RSTC, 0xFFFFFD00, s->irq_sysc[2]);
-    s->dev_rtt  = sysbus_create_simple(TYPE_AT91_RTT,  0xFFFFFD20, s->irq_sysc[3]);
-    s->dev_pit  = sysbus_create_simple(TYPE_AT91_PIT,  0xFFFFFD30, s->irq_sysc[4]);
+    s->dev_rstc   = sysbus_create_simple(TYPE_AT91_RSTC,   0xFFFFFD00, s->irq_sysc[3]);
+    s->dev_rtt    = sysbus_create_simple(TYPE_AT91_RTT,    0xFFFFFD20, s->irq_sysc[4]);
+    s->dev_pit    = sysbus_create_simple(TYPE_AT91_PIT,    0xFFFFFD30, s->irq_sysc[5]);
 
     // currently unimplemented things...
     create_unimplemented_device("iobc.internal.uhp",   0x00500000, 0x4000);
@@ -341,7 +351,6 @@ static void iobc_init(MachineState *machine)
     create_unimplemented_device("iobc.periph.adc",     0xFFFE0000, 0x4000);
 
     create_unimplemented_device("iobc.periph.ecc",     0xFFFFE800, 0x200);
-    create_unimplemented_device("iobc.periph.sdramc",  0xFFFFEA00, 0x200);
     create_unimplemented_device("iobc.periph.smc",     0xFFFFEC00, 0x200);
 
     create_unimplemented_device("iobc.periph.shdwc",   0xFFFFFD10, 0x10);
