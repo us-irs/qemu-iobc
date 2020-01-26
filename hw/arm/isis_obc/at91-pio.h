@@ -4,6 +4,8 @@
 #include "qemu/osdep.h"
 #include "hw/sysbus.h"
 
+#include "ioxfer-server.h"
+
 
 #define AT91_PIO_NUM_PINS   32
 
@@ -17,6 +19,9 @@ typedef struct {
     MemoryRegion mmio;
     qemu_irq irq;
     qemu_irq pin_out[AT91_PIO_NUM_PINS];
+
+    char* socket;
+    IoXferServer *server;
 
     // registers
     uint32_t reg_psr;
