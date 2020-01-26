@@ -5,6 +5,8 @@
 #include "hw/sysbus.h"
 #include "hw/ptimer.h"
 
+#include "ioxfer-server.h"
+
 
 #define TYPE_AT91_SDRAMC "at91-sdramc"
 #define AT91_SDRAMC(obj) OBJECT_CHECK(SdramcState, (obj), TYPE_AT91_SDRAMC)
@@ -14,6 +16,9 @@ typedef struct {
 
     MemoryRegion mmio;
     qemu_irq irq;
+
+    char* socket;
+    IoXferServer *server;
 
     uint32_t reg_mr;
     uint32_t reg_tr;

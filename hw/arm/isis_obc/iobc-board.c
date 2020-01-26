@@ -37,6 +37,7 @@
 #define SOCKET_PIOA     "/tmp/qemu_at91_pioa"
 #define SOCKET_PIOB     "/tmp/qemu_at91_piob"
 #define SOCKET_PIOC     "/tmp/qemu_at91_pioc"
+#define SOCKET_SDRAMC   "/tmp/qemu_at91_sdramc"
 
 
 static struct arm_boot_info iobc_board_binfo = {
@@ -318,8 +319,14 @@ static void iobc_init(MachineState *machine)
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_spi1), 0, 0xFFFCC000);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_spi1), 0, s->irq_aic[13]);
 
+    // SDRAMC
+    s->dev_sdramc = qdev_create(NULL, TYPE_AT91_SDRAMC);
+    qdev_prop_set_string(s->dev_sdramc, "socket", SOCKET_SDRAMC);
+    qdev_init_nofail(s->dev_sdramc);
+    sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_sdramc), 0, 0xFFFFEA00);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_sdramc), 0, s->irq_sysc[2]);
+
     // other peripherals
-    s->dev_sdramc = sysbus_create_simple(TYPE_AT91_SDRAMC, 0xFFFFEA00, s->irq_sysc[2]);
     s->dev_rstc   = sysbus_create_simple(TYPE_AT91_RSTC,   0xFFFFFD00, s->irq_sysc[3]);
     s->dev_rtt    = sysbus_create_simple(TYPE_AT91_RTT,    0xFFFFFD20, s->irq_sysc[4]);
     s->dev_pit    = sysbus_create_simple(TYPE_AT91_PIT,    0xFFFFFD30, s->irq_sysc[5]);
