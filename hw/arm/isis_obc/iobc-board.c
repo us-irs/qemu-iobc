@@ -22,6 +22,7 @@
 #include "at91-usart.h"
 #include "at91-twi.h"
 #include "at91-spi.h"
+#include "at91-sdramc.h"
 
 
 #define SOCKET_TWI      "/tmp/qemu_at91_twi"
@@ -75,6 +76,7 @@ typedef struct {
     DeviceState *dev_spi0;
     DeviceState *dev_spi1;
     DeviceState *dev_twi;
+    DeviceState *dev_sdramc;
 
     qemu_irq irq_aic[32];
     qemu_irq irq_sysc[32];
@@ -317,9 +319,10 @@ static void iobc_init(MachineState *machine)
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_spi1), 0, s->irq_aic[13]);
 
     // other peripherals
-    s->dev_rstc = sysbus_create_simple(TYPE_AT91_RSTC, 0xFFFFFD00, s->irq_sysc[2]);
-    s->dev_rtt  = sysbus_create_simple(TYPE_AT91_RTT,  0xFFFFFD20, s->irq_sysc[3]);
-    s->dev_pit  = sysbus_create_simple(TYPE_AT91_PIT,  0xFFFFFD30, s->irq_sysc[4]);
+    s->dev_sdramc = sysbus_create_simple(TYPE_AT91_SDRAMC, 0xFFFFEA00, s->irq_sysc[2]);
+    s->dev_rstc   = sysbus_create_simple(TYPE_AT91_RSTC,   0xFFFFFD00, s->irq_sysc[3]);
+    s->dev_rtt    = sysbus_create_simple(TYPE_AT91_RTT,    0xFFFFFD20, s->irq_sysc[4]);
+    s->dev_pit    = sysbus_create_simple(TYPE_AT91_PIT,    0xFFFFFD30, s->irq_sysc[5]);
 
     // currently unimplemented things...
     create_unimplemented_device("iobc.internal.uhp",   0x00500000, 0x4000);
@@ -341,7 +344,6 @@ static void iobc_init(MachineState *machine)
     create_unimplemented_device("iobc.periph.adc",     0xFFFE0000, 0x4000);
 
     create_unimplemented_device("iobc.periph.ecc",     0xFFFFE800, 0x200);
-    create_unimplemented_device("iobc.periph.sdramc",  0xFFFFEA00, 0x200);
     create_unimplemented_device("iobc.periph.smc",     0xFFFFEC00, 0x200);
 
     create_unimplemented_device("iobc.periph.shdwc",   0xFFFFFD10, 0x10);
