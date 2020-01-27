@@ -51,6 +51,7 @@ typedef struct {
     dma_action_cb dma_tx_stop;
     dma_action_cb dma_rx_start;
     dma_action_cb dma_rx_stop;
+    dma_action_cb update_irq;
     uint32_t flag_endrx;
     uint32_t flag_endtx;
     uint32_t flag_rxbuff;
@@ -267,6 +268,42 @@ enum at91_pdc_action at91_pdc_generic_set_register(At91Pdc *pdc, At91PdcOps *ops
 {
     enum at91_pdc_action action = at91_pdc_set_register(pdc, offset, value);
 
+    switch (offset) {
+    case PDC_RCR:
+    case PDC_RNCR:
+        if (value) {
+            *ops->reg_sr &= ~ops->flag_endrx;
+            *ops->reg_sr &= ~ops->flag_rxbuff;
+        }
+
+        if ((pdc->reg_ptsr & PTSR_RXTEN) && pdc->reg_rcr == 0) {
+            *ops->reg_sr |= ops->flag_endrx;
+
+            if (pdc->reg_rncr == 0)
+                *ops->reg_sr |= ops->flag_rxbuff;
+        }
+
+        ops->update_irq(ops->opaque);
+        break;
+
+    case PDC_TCR:
+    case PDC_TNCR:
+        if (value) {
+            *ops->reg_sr &= ~ops->flag_endtx;
+            *ops->reg_sr &= ~ops->flag_txbufe;
+        }
+
+        if ((pdc->reg_ptsr & PTSR_TXTEN) && pdc->reg_tcr == 0) {
+            *ops->reg_sr |= ops->flag_endtx;
+
+            if (pdc->reg_tncr == 0)
+                *ops->reg_sr |= ops->flag_txbufe;
+        }
+
+        ops->update_irq(ops->opaque);
+        break;
+    }
+
     switch (action) {
     case AT91_PDC_ACTION_NONE:
         break;      // nothing to do
@@ -287,38 +324,20 @@ enum at91_pdc_action at91_pdc_generic_set_register(At91Pdc *pdc, At91PdcOps *ops
         break;
 
     case AT91_PDC_ACTION_START_RX:
-        *ops->reg_sr &= ~ops->flag_endrx;
-        *ops->reg_sr &= ~ops->flag_rxbuff;
         ops->dma_rx_start(ops->opaque);
         break;
 
     case AT91_PDC_ACTION_STOP_RX:
         ops->dma_rx_stop(ops->opaque);
-        *ops->reg_sr &= ~ops->flag_endrx;
-        *ops->reg_sr &= ~ops->flag_rxbuff;
         break;
 
     case AT91_PDC_ACTION_START_TX:
-        *ops->reg_sr &= ~ops->flag_endtx;
-        *ops->reg_sr &= ~ops->flag_txbufe;
         ops->dma_tx_start(ops->opaque);
         break;
 
     case AT91_PDC_ACTION_STOP_TX:
         ops->dma_tx_stop(ops->opaque);
-        *ops->reg_sr &= ~ops->flag_endtx;
-        *ops->reg_sr &= ~ops->flag_txbufe;
         break;
-    }
-
-    if (value && (offset == PDC_RCR || offset == PDC_RNCR)) {
-        *ops->reg_sr &= ~ops->flag_endrx;
-        *ops->reg_sr &= ~ops->flag_rxbuff;
-    }
-
-    if (value && (offset == PDC_TCR || offset == PDC_TNCR)) {
-        *ops->reg_sr &= ~ops->flag_endtx;
-        *ops->reg_sr &= ~ops->flag_txbufe;
     }
 
     return action;
