@@ -613,6 +613,7 @@ static void twi_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned
                 .dma_rx_stop  = xfer_dma_rx_stop,
                 .dma_tx_start = xfer_dma_tx_start,
                 .dma_tx_stop  = xfer_dma_tx_stop,
+                .update_irq   = (void (*)(void*))twi_update_irq,
                 .flag_endrx   = SR_ENDRX,
                 .flag_endtx   = SR_ENDTX,
                 .flag_rxbuff  = SR_RXBUFF,

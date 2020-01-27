@@ -790,6 +790,7 @@ static void usart_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsign
                 .dma_rx_stop  = xfer_dma_rx_stop,
                 .dma_tx_start = xfer_dma_tx_start,
                 .dma_tx_stop  = xfer_dma_tx_stop,
+                .update_irq   = (void (*)(void*))update_irq,
                 .flag_endrx   = CSR_ENDRX,
                 .flag_endtx   = CSR_ENDTX,
                 .flag_rxbuff  = CSR_RXBUFF,
