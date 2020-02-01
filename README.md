@@ -68,3 +68,27 @@ The second option disables the monitor interface, which can be used to pause or 
 For automated testing, this level of control is usually not required, and if so it is available via QMP.
 If the monitor interface is needed nontheless (e.g. in an interactive session), one could open a telnet server, e.g. via `-monitor telnet:127.0.0.1:55555,server` and then connect to it via `telnet 127.0.0.1 55555`.
 Please refer to the [QEMU documentation](https://qemu.weilnetz.de/doc/qemu-doc.html) for more details.
+
+### Debugging AT91 with QEMU
+
+Debugging a program running in QEMU is fairly easy:
+Run QEMU with your preferred options (as detailed above) and add `-s -S`.
+Option `-s` enables debugging (by default at port `1234`), option `-S` pauses initial execution until it is explicitly continued via a command in the debugger.
+To then debug the running QEMU instance, simply start GDB and connect to `localhost:1234` (`target remote localhost:1234`).
+To obtain debug information, load the symbols from the `.elf` file generated when compiling the binary (same directory, `symbol-file _bin/sam9g20/devel/sourceobsw-at91sam9g20_ek-sdram.elf`).
+
+For example, the following commands can be used to
+- run QEMU:
+  ```
+  ./arm-softmmu/qemu-system-arm -M isis-obc -monitor stdio \
+      -bios ./path/to/sourceobsw-at91sam9g20_ek-sdram.bin -s -S
+  ```
+
+- run GDB:
+  ```
+  arm-none-eabi-gdb \
+      -ex 'target remote localhost:1234' \
+      -ex 'symbol-file _bin/sam9g20/devel/sourceobsw-at91sam9g20_ek-sdram.elf'
+  ```
+in your terminal.
+IDEs with GDB support (Eclipse, VS-Code) can be configured accordingly.
