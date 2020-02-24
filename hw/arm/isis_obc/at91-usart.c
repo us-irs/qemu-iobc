@@ -6,7 +6,7 @@
 
 // TODO: DTR/RTS and RI/DSR/DCD/CTS pins
 // TODO: simulate shift register / time to send
-// TODO: update US_NER
+// TODO: update US_NER (vailure injection?)
 
 
 #define IOX_CAT_DATA            0x01
@@ -595,12 +595,11 @@ static void usart_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsign
             s->reg_csr &= ~(CSR_PARE | CSR_FRAME | CSR_OVRE | CSR_MANERR);
             s->reg_csr &= ~(CSR_RXBRK | CSR_TIMEOUT | CSR_ENDRX | CSR_RXBUFF | CSR_NACK);
 
-            // TODO: CR_RSTRX
-            // The software resets clear the status flag and reset internal
-            // state machines but the user interface configuration registers
-            // hold the value configured prior to software reset. Regardless of
-            // what the receiver or the trans- mitter is performing, the
-            // communication is immediately stopped.
+            // SPEC: The software resets clear the status flag and reset
+            // internal state machines but the user interface configuration
+            // registers hold the value configured prior to software reset.
+            // Regardless of what the receiver or the trans- mitter is
+            // performing, the communication is immediately stopped.
 
             // Note: Do not clear RXRDY, this is masked separately.
             update_irq(s);
@@ -609,17 +608,15 @@ static void usart_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsign
             s->tx_enabled = false;
             s->reg_csr &= ~(CSR_TXRDY | CSR_TXEMPTY | CSR_ENDTX | CSR_TXBUFE);
 
-            // TODO: CR_RSTTX
-            // The software resets clear the status flag and reset internal
-            // state machines but the user interface configuration registers
-            // hold the value configured prior to software reset. Regardless of
-            // what the receiver or the trans- mitter is performing, the
-            // communication is immediately stopped.
+            // SPEC: The software resets clear the status flag and reset
+            // internal state machines but the user interface configuration
+            // registers hold the value configured prior to software reset.
+            // Regardless of what the receiver or the trans- mitter is
+            // performing, the communication is immediately stopped.
         }
         if (value & CR_RXEN) {
             s->rx_enabled = true;
 
-            // TODO: CR_RXEN
             // SPEC: If characters were being received when the receiver was
             // disabled, RXRDY changes to 1 when the receiver is enabled.
 
@@ -628,22 +625,16 @@ static void usart_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsign
         if (value & CR_RXDIS) {     // takes precedence over RXEN
             s->rx_enabled = false;
 
-            // TODO: CR_RXDIS
-
             // Note: Do not clear RXRDY, this is masked separately.
             update_irq(s);
         }
         if (value & CR_TXEN) {
             s->tx_enabled = true;
             s->reg_csr |= CSR_TXRDY | CSR_TXEMPTY;
-
-            // TODO: CR_TXEN
         }
         if (value & CR_TXDIS) {     // takes precedence over TXEN
             s->tx_enabled = false;
             s->reg_csr &= ~(CSR_TXRDY | CSR_TXEMPTY);
-
-            // TODO: CR_TXDIS
         }
         if (value & CR_RSTSTA) {
             s->reg_csr &= ~(CSR_PARE | CSR_FRAME | CSR_OVRE | CSR_MANERR | CSR_RXBRK);
@@ -718,7 +709,6 @@ static void usart_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsign
 
     case US_MR:
         s->reg_mr = value;
-        // TODO: update mode
         update_baud_rate(s);
         break;
 
