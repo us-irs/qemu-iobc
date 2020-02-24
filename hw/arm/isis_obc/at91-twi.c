@@ -169,9 +169,6 @@ static void xfer_chrtx_timer_tick(void *opaque)
 
 static void xfer_chr_transmit(TwiState *s, uint8_t value)
 {
-    warn_report("at91.twi: unimplemented xfer_chr_transmit");
-    warn_report("          only DMA/PDC transmission supported for now");
-
     buffer_reserve(&s->sendbuf, 1);
     buffer_append(&s->sendbuf, &value, 1);
 
