@@ -120,7 +120,8 @@ inline static uint8_t pcs_to_nr(SpiState *s, uint8_t pcs)
     return pcs_to_nr_nopcsdec(pcs);
 }
 
-inline static uint8_t pcnr_to_cs(SpiState *s, uint8_t pcnr) {
+inline static uint8_t pcnr_to_cs(SpiState *s, uint8_t pcnr)
+{
     if (!(s->reg_mr & MR_MSTR))
         return 0x00;
 
