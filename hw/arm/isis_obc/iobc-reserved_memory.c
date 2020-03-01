@@ -1,3 +1,9 @@
+/*
+ * Basic reserved memory region.
+ *
+ * See iobc-reserved_memory.h for details.
+ */
+
 #include "qemu/osdep.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"

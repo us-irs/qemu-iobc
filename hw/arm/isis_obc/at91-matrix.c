@@ -1,3 +1,13 @@
+/*
+ * AT91 Bus Matrix.
+ *
+ * See at91-matrix.h for details.
+ */
+
+// Overview of TODOs:
+// - only switching between SRAM and SDRAM for boot memory supported (nothing
+//   else)
+
 #include "at91-matrix.h"
 #include "qemu/error-report.h"
 

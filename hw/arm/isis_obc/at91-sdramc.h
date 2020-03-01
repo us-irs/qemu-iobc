@@ -1,3 +1,13 @@
+/*
+ * AT91 SDRAM Controller.
+ *
+ * This is only a front-end implementation: As the SDRAM properties affected
+ * by this controller are not emulated, this implementation only provides a
+ * read/write frontend without any side-effects. Anything the processor
+ * sees/that can be accessed via register reads on this device are handled as
+ * per specification.
+ */
+
 #ifndef HW_ARM_ISIS_OBC_SDRAMC_H
 #define HW_ARM_ISIS_OBC_SDRAMC_H
 

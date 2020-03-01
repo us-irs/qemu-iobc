@@ -1,3 +1,9 @@
+/*
+ * AT91 SDRAM Controller.
+ *
+ * See at91-sdramc.h for details.
+ */
+
 #include "at91-sdramc.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"
