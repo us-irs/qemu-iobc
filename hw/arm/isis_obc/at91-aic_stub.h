@@ -1,3 +1,12 @@
+/*
+ * AT91 Advanced Interrupt Controller stub.
+ *
+ * Collects interrupts from system controller (SYSC) devices and forwards them
+ * to the Advanced Interrupt Controller (AIC). SYSC devices share a single
+ * interrupt line of the AIC, this stub collects them and ORs them together to
+ * a single qemu_irq to be forwarded to the AIC.
+ */
+
 #ifndef HW_ARM_ISIS_OBC_AIC_STUB_H
 #define HW_ARM_ISIS_OBC_AIC_STUB_H
 

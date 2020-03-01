@@ -1,3 +1,16 @@
+/*
+ * AT91 Debug Unit.
+ *
+ * The Debug Unit (DBGU) provides the serial output of the AT91. Internally,
+ * the DBGU provides a UART device. This implementation maps this UART to a
+ * generic QEMU serial device. This serial device is set to serial descriptor
+ * 0 (stdout/stdin) in iobc-board.c to directly forward standard output/input
+ * of the AT91 to the emulator output/input. The main emulator window should
+ * thus behave like a normal serial (debugging) console to the AT91.
+ *
+ * See at91-dbgu.c for implementation status.
+ */
+
 #ifndef HW_ARM_ISIS_OBC_DBGU_H
 #define HW_ARM_ISIS_OBC_DBGU_H
 

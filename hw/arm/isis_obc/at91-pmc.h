@@ -1,3 +1,15 @@
+/*
+ * AT91 Power Management Controller.
+ *
+ * Controlls AT91 system master clock.
+ *
+ * Notes: Register callback via at91_pmc_set_mclk_change_callback to get
+ * notified when sytem clock changes. Only one callback allowed at a time.
+ * This should be done by the board implementation.
+ *
+ * See at91-pmc.c for implementation status.
+ */
+
 #ifndef HW_ARM_ISIS_OBC_PMC_H
 #define HW_ARM_ISIS_OBC_PMC_H
 
@@ -39,6 +51,10 @@ typedef struct {
 } PmcState;
 
 
+/*
+ * Set the callback function to be called when the AT91 master clock changes.
+ * Only one callback can be set at a time.
+ */
 inline static void at91_pmc_set_mclk_change_callback(PmcState *s, void *opaque, at91_mclk_cb *cb)
 {
     s->mclk_cb = cb;

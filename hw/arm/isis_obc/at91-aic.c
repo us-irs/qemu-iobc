@@ -1,3 +1,9 @@
+/*
+ * AT91 Advanced Interrupt Controller.
+ *
+ * See at91-aic.h for details.
+ */
+
 #include "at91-aic.h"
 #include "qemu/error-report.h"
 

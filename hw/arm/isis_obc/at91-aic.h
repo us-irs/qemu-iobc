@@ -1,3 +1,16 @@
+/*
+ * AT91 Advanced Interrupt Controller.
+ *
+ * Note: All System Controller (SYSC) interrupts should be connected to the
+ * AIC Stub and not directly to the AIC. On the AT91, all SYSC interrupts are
+ * handled by a single interrupt line to the AIC. The AIC stub collects the
+ * SYSC IRQs to create this single IRQ line. This means that all SYSC
+ * interrupts should be connected to the stub, which in turn is then connected
+ * to the AIC itself on line 1. All other interrupts should be connected to
+ * their corresponding AIC IRQ line (see AT91 technical documentation for
+ * details).
+ */
+
 #ifndef HW_ARM_ISIS_OBC_AIC_H
 #define HW_ARM_ISIS_OBC_AIC_H
 

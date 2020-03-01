@@ -1,3 +1,41 @@
+/*
+ * AT91 Serial Peripheral Interface.
+ *
+ * Emulation of devices connected to the SPI is done via outside processes
+ * communicating via the IOX server (for details see ioxfer-server.h). The
+ * socket address can be set via the "socket" property (as is done and defined
+ * in iobc_board.c).
+ *
+ * Multiple operations are possible via the IOX server. For data transfer
+ * these are:
+ * - Transfer data from AT19 to client process (category IOX_CAT_DATA, ID
+ *   IOX_CID_DATA_OUT, Payload contains raw data).
+ * - Transfer data from client process to AT91 (category IOX_CAT_DATA, ID
+ *   IOX_CID_DATA_IN, payload contains raw data).
+ * Particular care should be taken regarding the synchronous transmit/receive
+ * nature of the SPI interface: SPI tranfers can only read and write at the
+ * same time, meaning when data is being sent by the AT91, it intrinsically
+ * receives the same amount of data at the same time. Due to this, as soon as
+ * the AT91 (master mode) initiates a data transfer (sends data), the
+ * emulation is paused until the client has sent back the same amount of data,
+ * which is considered to be read during the transmit operation. Failure of
+ * the client to send this data will block the emulation. Excess data is
+ * ignored. In essence, a client for the AT91 SPI in master mode should always
+ * follow up a data frame receival by sending the exact same amount of data
+ * back.
+ *
+ * As due to the different nature of the transport it is not possible to
+ * emulate all failure modes and flags. Thus a mechanism for fault injection
+ * is provided, allowing to set
+ * - MODF (category IOX_CAT_FAULT, ID IOX_CID_FAULT_MODF)
+ * - OVRES (category IOX_CAT_FAULT, ID IOX_CID_FAULT_OVRES)
+ *
+ * Additional notes:
+ * - Master clock of AT91 must be set/updated via at91_spi_set_master_clock.
+ *
+ * See at91-spi.c for implementation status.
+ */
+
 #ifndef HW_ARM_ISIS_OBC_SPI_H
 #define HW_ARM_ISIS_OBC_SPI_H
 

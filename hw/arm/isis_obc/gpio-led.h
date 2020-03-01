@@ -1,3 +1,16 @@
+/*
+ * Simple emulated LED.
+ *
+ * Simulates a single LED accessible via a GPIO, which outputs its state on
+ * change to the QEMU log. The GPIO is a named IRQ line ("led") and controlls
+ * the state of the LED (on/off). Connect this GPIO to control the LED, e.g.
+ * via a the push-button emulation. The LED can be given a name via the "name"
+ * property.
+ *
+ * Useful for the AT91 getting-started example. Currently not added to the
+ * board.
+ */
+
 #ifndef HW_ARM_ISIS_OBC_GPIO_LED_H
 #define HW_ARM_ISIS_OBC_GPIO_LED_H
 

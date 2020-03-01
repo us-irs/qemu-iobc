@@ -1,3 +1,46 @@
+/*
+ * AT91 Universal Synchronous/Asynchronous Receiver/Transmitter.
+ *
+ * Emulation of devices connected to the USART is done via outside processes
+ * communicating via the IOX server (for details see ioxfer-server.h). The
+ * socket address can be set via the "socket" property (as is done and defined
+ * in iobc_board.c).
+ *
+ * Multiple operations are possible via the IOX server. For data transfer
+ * these are:
+ * - Transfer data from AT19 to client process (category IOX_CAT_DATA, ID
+ *   IOX_CID_DATA_OUT, Payload contains raw data).
+ * - Transfer data from client process to AT91 (category IOX_CAT_DATA, ID
+ *   IOX_CID_DATA_IN, payload contains raw data).
+ * In case of transmission from client to AT91, the IOX server sends a
+ * response with a 32 bit little-endian status code. Currently this code can
+ * be one of the following Unix/Linux error codes:
+ * - ENXIO: The USART receiver has not been enabled on the AT91.
+ * - 0: Success.
+ *
+ * As due to the different nature of the transport it is not possible to
+ * emulate all failure modes and flags. Thus a mechanism for fault injection
+ * is provided, allowing to set
+ * - OVRE (category IOX_CAT_FAULT, ID IOX_CID_FAULT_OVRE)
+ * - FRAME (category IOX_CAT_FAULT, ID IOX_CID_FAULT_FRAME)
+ * - PARE (category IOX_CAT_FAULT, ID IOX_CID_FAULT_PARE)
+ * - TIMEOUT (category IOX_CAT_FAULT, ID IOX_CID_FAULT_TIMEOUT)
+ *
+ * Note especially that, since the receiver timeout can not be emulated, it is
+ * imperative to inject this timeout manually if communication relies on it.
+ * This is the case when a receive operation is started with a buffer that may
+ * be larger than the expected length of the data to be recieved. In this case
+ * one would rely on the timeout to detect the end of the
+ * data-frame/transmission burst. This detection cannot be reliably emulated
+ * and thus the timeout has to be manually fault-injected by the sender/client
+ * after the data transmission has been completed.
+ *
+ * Additional notes:
+ * - Master clock of AT91 must be set/updated via at91_usart_set_master_clock.
+ *
+ * See at91-usart.c for implementation status.
+ */
+
 #ifndef HW_ARM_ISIS_OBC_USART_H
 #define HW_ARM_ISIS_OBC_USART_H
 

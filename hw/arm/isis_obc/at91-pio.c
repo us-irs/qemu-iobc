@@ -1,3 +1,15 @@
+/*
+ * AT91 Peripheral I/O controller.
+ *
+ * See at91-pio.h for details.
+ */
+
+// Overview of TODOs:
+// - QEMU IRQ lines are not connected to the respective peripheral lines
+//   (secondary functionality of PIO). This is missing as the line-/pin-states of
+//   the connected devices are currently not emulated.
+// - Board implementation dependent PSR reset values are assumed to be zero.
+
 #include "at91-pio.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"

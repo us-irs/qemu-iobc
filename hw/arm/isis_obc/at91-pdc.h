@@ -1,3 +1,11 @@
+/*
+ * Generic support functionality for AT91 PDC implementations.
+ *
+ * Support routines and structures to simplify peripheral data controller
+ * (PDC) transfer implementations for I/O device implementations (USART, TWI,
+ * SPI, ...). See e.g. at91-usart.c for usage.
+ */
+
 #ifndef HW_ARM_ISIS_OBC_PDC_H
 #define HW_ARM_ISIS_OBC_PDC_H
 

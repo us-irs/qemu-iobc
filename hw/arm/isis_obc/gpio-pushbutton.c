@@ -1,3 +1,9 @@
+/*
+ * Simple emulated GPIO pushbuttons.
+ *
+ * See gpio-pushbutton.h for details.
+ */
+
 #include "gpio-pushbutton.h"
 #include "qemu/error-report.h"
 

@@ -1,9 +1,17 @@
+/*
+ * AT91 Programmable Interrupt Timer
+ *
+ * See at91-pmc.h for details.
+ */
+
+// Overview of TODOs:
+// - Simulate SR_MCKRDY: Currently, SR_MCKRDY is set instantly on clock change.
+//   In reality, SR_MCKRDY should be unset until the clock has stabilized. This
+//   stabilization process is currently not simulated.
+
 #include "at91-pmc.h"
 #include "qemu/error-report.h"
 
-// TODO: simulate SR_MCKRDY
-//       Currently, SR_MCKRDY is set instantly on clock change.
-//       In reality, SR_MCKRDY should be unset for some time.
 
 #define CLOCK_FREQ_SLOW        32768    // slow clock oscillator frequency
 #define CLOCK_FREQ_MAIN     18432000    // main oscillator frequency

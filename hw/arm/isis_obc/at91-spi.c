@@ -1,3 +1,16 @@
+/*
+ * AT91 Serial Peripheral Interface.
+ *
+ * See at91-spi.h for details.
+ */
+
+// Overview of TODOs:
+// - Slave mode (only master mode is implemented).
+// - Transmission delays (transmissions are currently sent instantaneous, size
+//   does not have an impact on the time it takes to send them).
+// - Chip-selects are implemented on a per-transfer basis, NPCS lines are not
+//   directly simulated. This includes LASTXFER having no effect.
+
 #include "at91-spi.h"
 #include "exec/address-spaces.h"
 #include "sysemu/cpus.h"
@@ -72,10 +85,6 @@
 // received, the Overrun Error bit (OVRES) in SPI_SR is set. As long as this
 // flag is set, data is loaded in SPI_RDR. The user has to read the status
 // register to clear the OVRES bit.
-
-// TODO: Transmission delays
-// TODO: Slave Mode
-// TODO: LASTXFER handling
 
 
 static void update_irq(SpiState *s)

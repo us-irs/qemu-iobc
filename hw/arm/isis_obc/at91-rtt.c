@@ -1,3 +1,7 @@
+/*
+ * AT91 Real-Time Timer.
+ */
+
 #include "at91-rtt.h"
 #include "qemu/error-report.h"
 

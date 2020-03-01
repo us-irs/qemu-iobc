@@ -1,3 +1,9 @@
+/*
+ * Simple emulated LED.
+ *
+ * See gpio-led.h for details.
+ */
+
 #include "gpio-led.h"
 #include "qemu/error-report.h"
 

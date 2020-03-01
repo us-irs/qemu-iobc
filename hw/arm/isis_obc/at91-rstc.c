@@ -1,3 +1,14 @@
+/*
+ * AT91 Reset Controller.
+ *
+ * See at91-rstc.h for details.
+ */
+
+// Overview of TODOs:
+// - processor reset not implemented (calling it currently does nothing)
+// - peripheral reset not implemented (calling it currently does nothing)
+// - external reset not implemented (calling it currently does nothing)
+
 #include "at91-rstc.h"
 #include "qemu/error-report.h"
 

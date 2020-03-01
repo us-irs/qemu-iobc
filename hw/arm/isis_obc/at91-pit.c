@@ -1,3 +1,9 @@
+/*
+ * AT91 Programmable Interrupt Timer
+ *
+ * See at91-pit.h for details.
+ */
+
 #include "at91-pit.h"
 #include "qemu/error-report.h"
 

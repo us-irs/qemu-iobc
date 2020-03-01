@@ -1,9 +1,24 @@
+/*
+ * AT91 Debug Unit.
+ *
+ * See at91-dbgu.h for details.
+ */
+
+// Overview of TODOs:
+// - at91.dbgu.rxtx: actual implementation respecting baud-rate, parity mode,
+//   etc.? (those are currently ignored/not calculated)
+// - at91.dbgu.pdc: PDC support
+// - at91.dbgu.chip_id: set actual chip id and exid
+// - at91.dbgu.rx: receiver overruns are currently silently ignored (any better
+//   options?)
+// - debug communications channel (DDC) signals not implemented
+// - input has not been tested
+
+
 #include "at91-dbgu.h"
 #include "qemu/error-report.h"
 #include "qemu/log.h"
 
-
-// TODO(at91.dbgu.rxtx): actual implementation respecting baud-rate etc.?
 
 #define DEFAULT_CIDR    0x00000000      // TODO(at91.dbgu.chip_id): get actual chip id
 #define DEFAULT_EXID    0x00000000      // TODO(at91.dbgu.chip_id): get actual chip exid

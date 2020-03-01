@@ -1,3 +1,15 @@
+/*
+ * Simple GPIO pushbuttons.
+ *
+ * Emulates an array of 32 GPIO pushbuttons. Specifically, this device
+ * provides 32 IRQ lines, which can be controlled via a UDP packet to
+ * localhost:6000. The data format expected is two bytes: The first byte
+ * provides the number of the pin, the second the state (0 or 1).
+ *
+ * Useful for the AT91 getting-started example. Currently not added to the
+ * board.
+ */
+
 #ifndef HW_ARM_ISIS_OBC_GPIO_PUSHBUTTON_H
 #define HW_ARM_ISIS_OBC_GPIO_PUSHBUTTON_H
 

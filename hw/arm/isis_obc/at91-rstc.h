@@ -1,3 +1,11 @@
+/*
+ * AT91 Reset Controller.
+ *
+ * Processor and peripheral resets initiated by code.
+ *
+ * See at91-rstc.c for implementation status.
+ */
+
 #ifndef HW_ARM_ISIS_OBC_RSTC_H
 #define HW_ARM_ISIS_OBC_RSTC_H
 

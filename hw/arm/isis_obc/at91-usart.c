@@ -1,12 +1,32 @@
+/*
+ * AT91 Universal Synchronous/Asynchronous Receiver/Transmitter.
+ *
+ * See at91-usart.h for details.
+ */
+
+// Overview of TODOs:
+// - No read timeout: Has to be injected maually when transmitting to AT91.
+// - DTR/RTS and RI/DSR/DCD/CTS pins unimplemented (as are
+//   DTREN/DTRDIS/RTSEN/RTSDIS).
+// - Simulate shift register not implemented, data is transferred immediately
+//   rather than taking the appropriate time based on size and baud-rate.
+// - US_NER update (error counting) not implemented.
+// - SCK not supported as source for USART clock.
+// - Start-/stop break sending (CR_STTBRK, CR_STPBRK) not supported.
+// - Address sending (CR_SENDA) not implemented.
+// - Mode register largely not implemented/unhandled.
+// - Transmit timeguard (US_TTGR) not implemented.
+// - US_IF, US_MAN not implemented.
+//
+// Note: Moste of these unimplemented features are not emulated as the data is
+// transferred directly and the transfer channel is not emulated as close to
+// hardware as required for these features to have an impact.
+
+
 #include "at91-usart.h"
 #include "exec/address-spaces.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"
-
-
-// TODO: DTR/RTS and RI/DSR/DCD/CTS pins
-// TODO: simulate shift register / time to send
-// TODO: update US_NER (vailure injection?)
 
 
 #define IOX_CAT_DATA            0x01
