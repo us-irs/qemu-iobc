@@ -1,3 +1,27 @@
+/*
+ * AT91 Peripheral I/O controller.
+ *
+ * The Peripheral I/O controller (PIO) controls GPIO pins and allows
+ * interrupts to be triggered by setting the individual pin states.
+ *
+ * Communication with out-of-emulator processes controlling/accessing these
+ * states is done via sockets and the custom I/O transfer server (IOX). See
+ * ioxfer-server.h for details on the transfer protocoll, see at91-pio.c for
+ * the respecitve category and frame IDs (IOX_CAT_* and IOX_CID_*). Currently
+ * supported operations are:
+ * - Querying pin-state (IOX_CID_PINSTATE_GET in/out frame). Note that only
+ *   the reply carries a payload.
+ * - Recieving pin-state updates on change (via IOX_CID_PINSTATE_OUT output
+ *   frame).
+ * - Setting pin-state (IOX_CID_PINSTATE_ENABLE/IOX_CID_PINSTATE_DISABLE).
+ *
+ * In all instances, the payload of the respecitve command is a 32 bit
+ * little-endian integer representing the current/to-be-set state of the 32
+ * pins (bit index equals pin number).
+ *
+ * See at91-pio.c for implementation status.
+ */
+
 #ifndef HW_ARM_ISIS_OBC_PIO_H
 #define HW_ARM_ISIS_OBC_PIO_H
 

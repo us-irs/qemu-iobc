@@ -1,3 +1,7 @@
+/*
+ * AT91 Real-Time Timer.
+ */
+
 #ifndef HW_ARM_ISIS_OBC_RTT_H
 #define HW_ARM_ISIS_OBC_RTT_H
 

@@ -1,11 +1,17 @@
+/*
+ * AT91 Two-Wire Interface (I2C).
+ *
+ * See at91-twi.h for details.
+ */
+
+// Overview of TODOs:
+// - Slave mode (only master mode implemented).
+// - Software-reset (CR_SWRST) not implemented.
+
 #include "at91-twi.h"
 #include "exec/address-spaces.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"
-
-
-// TODO: slave mode (SVACC/SVREAD/GACC, SCLWS?, EOSACC)
-
 
 #define IOX_CAT_DATA            0x01
 #define IOX_CAT_FAULT           0x02

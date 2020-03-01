@@ -1,3 +1,10 @@
+/*
+ * ISIS iOBC.
+ *
+ * Main board file for the ISIS iOBC board with AT91-SAM chip.
+ * See iobc_init function for connected devices and device setup.
+ */
+
 #include "qemu/osdep.h"
 #include "qemu-common.h"
 #include "qemu/error-report.h"
