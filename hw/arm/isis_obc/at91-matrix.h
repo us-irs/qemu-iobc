@@ -1,3 +1,11 @@
+/*
+ * AT91 Bus Matrix.
+ *
+ * Responsibilities include switching of boot memory.
+ *
+ * See at91-dbgu.c for implementation status.
+ */
+
 #ifndef HW_ARM_ISIS_OBC_MATRIX_H
 #define HW_ARM_ISIS_OBC_MATRIX_H
 

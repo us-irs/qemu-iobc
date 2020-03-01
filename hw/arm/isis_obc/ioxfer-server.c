@@ -1,3 +1,9 @@
+/*
+ * I/O Transfer Server (IOX).
+ *
+ * See ioxfer-server.h for details.
+ */
+
 #include "ioxfer-server.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"
