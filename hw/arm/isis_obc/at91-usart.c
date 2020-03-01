@@ -449,9 +449,7 @@ static int iox_receive_data(UsartState *s, struct iox_data_frame *frame)
     if (!s->rx_enabled)
         return iox_send_u32_resp(s->server, frame, ENXIO);
 
-    if (s->rcvbuf.capacity - s->rcvbuf.offset < frame->len)
-        return iox_send_u32_resp(s->server, frame, EAGAIN);
-
+    buffer_reserve(&s->rcvbuf, frame->len);
     buffer_append(&s->rcvbuf, frame->payload, frame->len);
     int status = iox_send_u32_resp(s->server, frame, 0);
     if (status)
