@@ -30,6 +30,7 @@
 #include "at91-twi.h"
 #include "at91-spi.h"
 #include "at91-sdramc.h"
+#include "at91-mci.h"
 
 
 #define SOCKET_TWI      "/tmp/qemu_at91_twi"
@@ -85,6 +86,7 @@ typedef struct {
     DeviceState *dev_spi1;
     DeviceState *dev_twi;
     DeviceState *dev_sdramc;
+    DeviceState *dev_mci;
 
     qemu_irq irq_aic[32];
     qemu_irq irq_sysc[32];
@@ -119,6 +121,7 @@ static void iobc_mkclk_changed(void *opaque, unsigned clock)
     at91_usart_set_master_clock(AT91_USART(s->dev_usart5), clock);
     at91_spi_set_master_clock(AT91_SPI(s->dev_spi0), clock);
     at91_spi_set_master_clock(AT91_SPI(s->dev_spi1), clock);
+    at91_mci_set_master_clock(AT91_MCI(s->dev_mci), clock);
 }
 
 static void iobc_init(MachineState *machine)
@@ -333,6 +336,13 @@ static void iobc_init(MachineState *machine)
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_sdramc), 0, 0xFFFFEA00);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_sdramc), 0, s->irq_sysc[2]);
 
+    // MCI
+    s->dev_mci = qdev_create(NULL, TYPE_AT91_MCI);
+    qdev_init_nofail(s->dev_mci);
+    sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_mci), 0, 0xFFFA8000);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_mci), 0, s->irq_aic[9]);
+    qdev_connect_gpio_out_named(s->dev_pio_b, "pin.out", 7, qdev_get_gpio_in_named(s->dev_mci, "select", 0));
+
     // other peripherals
     s->dev_rstc   = sysbus_create_simple(TYPE_AT91_RSTC,   0xFFFFFD00, s->irq_sysc[3]);
     s->dev_rtt    = sysbus_create_simple(TYPE_AT91_RTT,    0xFFFFFD20, s->irq_sysc[4]);
@@ -350,7 +360,6 @@ static void iobc_init(MachineState *machine)
 
     create_unimplemented_device("iobc.periph.tc012",   0xFFFA0000, 0x4000);
     create_unimplemented_device("iobc.periph.udp",     0xFFFA4000, 0x4000);
-    create_unimplemented_device("iobc.periph.mci",     0xFFFA8000, 0x4000);
     create_unimplemented_device("iobc.periph.ssc",     0xFFFBC000, 0x4000);
     create_unimplemented_device("iobc.periph.isi",     0xFFFC0000, 0x4000);
     create_unimplemented_device("iobc.periph.emac",    0xFFFC4000, 0x4000);

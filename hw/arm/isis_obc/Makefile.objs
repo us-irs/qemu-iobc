@@ -14,5 +14,6 @@ obj-y += at91-twi.o
 obj-y += at91-spi.o
 obj-y += at91-pio.o
 obj-y += at91-sdramc.o
+obj-y += at91-mci.o
 obj-y += gpio-led.o
 obj-y += gpio-pushbutton.o
