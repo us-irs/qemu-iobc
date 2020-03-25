@@ -38,6 +38,55 @@ From the build directory, run
 ```
 Due to the current board configuration, only the `sdram` image is supported.
 
+### Support for SD-Cards
+
+The iOBC supports up to two SD-Cards.
+In QEMU, SD-Cards can be added by telling it to use a specified image file containing the contents of the SD-Card, meaning that all data will be read from and written to the file.
+This can be done by adding the
+```
+-drive if=sd,index=0,format=raw,file=sd0.img
+```
+options to the `qemu-system-arm` call.
+- The `-drive` option adds a new drive (i.e. block device).
+- The `if=sd` parameter specifies the type as being an SD-Card.
+- The `index=0` parameter specifies the slot of the SD-Card.
+  This can be changed to `index=1` to populate the second SD-Card slot.
+  For multiple slots, the `-drive` option can be repeated with parameters changed accordingly.
+- The `format=raw` parameter specifies that the image file is in `raw` format.
+  Multiple other formats are supported (for details consult the official QEMU documentation), however, `raw` images can be easily mounted in Linux (more details below) or copied directly from/to a physical SD-Card (e.g. via the `dd` tool).
+  More on the creation of image files below.
+- The `file=sd0.img` specifies that the file to be loaded is called `sd0.img` in the current working directory.
+  Change `sd0.img` to whatever is appropriate for you.
+
+As an example, a full command to run the iOBC on QEMU with two SD-Cards, provided as `sd0.img` and `sd1.img`, is
+```
+./arm-softmmu/qemu-system-arm -M isis-obc -monitor stdio \
+    -bios ./path/to/sourceobsw-at91sam9g20_ek-sdram.bin  \
+    -drive if=sd,index=0,format=raw,file=sd0.img         \
+    -drive if=sd,index=1,format=raw,file=sd1.img
+```
+
+#### Creating Image Files
+
+To manipulate and create image files, QEMU provides the `qemu-img` tool.
+A `raw`-type image can be created via the command
+```
+./qemu-img create -f raw sd0.img 4G
+```
+The `-f raw` option specifies the type as being `raw`, `sd0.img` is the path to the image file, and `4G` specifies that the image should have a size of four gigabytes.
+Change the parameters according to your needs.
+For more information and other format types refer to the actual QEMU documentation for this command.
+
+#### Mounting a raw Image on Linux
+
+On Linux systems, a `raw`-type image can be easily mounted via the command
+```
+mount -o loop sd0.img /mnt
+```
+Again, `sd0.img` is the path to the image file.
+The `/mnt` path is the path to the directory where the image should be mounted.
+This will not work as easily with other image formats, however, the `qemu-img` tool provides a sub-command to convert between different types of images, which can be used to convert other types to `raw` before mounting them with the above command.
+
 ### Controlling QEMU via QMP
 
 QEMU can be controlled via the QEMU Machine Protocol (QMP).
