@@ -10,7 +10,7 @@
 // - support for register based reads and writes
 // - extended support for special commands (SPCMD, IOSPCMD)
 // - extended support for interrupt commands
-// - response register multi-access pattern
+// - software reset
 // - ...
 
 #include "at91-mci.h"
@@ -394,21 +394,25 @@ static void mci_do_command(MciState *s, uint32_t cmdr)
         s->reg_sr |= SR_RTOE;
     }
 
+    s->reg_rspr_index = 0;
     if (rlen == 0) {
         s->reg_rspr[0] = 0;
         s->reg_rspr[1] = 0;
         s->reg_rspr[2] = 0;
         s->reg_rspr[3] = 0;
+        s->reg_rspr_len = 0;
     } else if (rlen == 4) {
         s->reg_rspr[0] = ldl_be_p(&response[0]);
         s->reg_rspr[1] = 0;
         s->reg_rspr[2] = 0;
         s->reg_rspr[3] = 0;
+        s->reg_rspr_len = 1;
     } else if (rlen == 16) {
         s->reg_rspr[0] = ldl_be_p(&response[12]);
         s->reg_rspr[1] = ldl_be_p(&response[8]);
         s->reg_rspr[2] = ldl_be_p(&response[4]);
         s->reg_rspr[3] = ldl_be_p(&response[0]);
+        s->reg_rspr_len = 4;
     }
 
     if (CMDR_TRCMD(cmdr) != CMDR_TRCMD_NONE) {
@@ -538,14 +542,23 @@ static uint64_t mci_mmio_read(void *opaque, hwaddr offset, unsigned size)
     case MCI_BLKR:
         return s->reg_blkr;
 
+    // Note: According to spec, access to response registers can be done either
+    // by consecutively accessing the registers (0 to 3) or accessing the same
+    // register (up to) 4 times. As we can't detect which access pattern is
+    // being used, let's use an index incremented on each access. This is
+    // confirmed to work on the SD test task.
     case MCI_RSPR0:
-        return s->reg_rspr[0];      // TODO: multi-access
     case MCI_RSPR1:
-        return s->reg_rspr[1];      // TODO: multi-access
     case MCI_RSPR2:
-        return s->reg_rspr[2];      // TODO: multi-access
     case MCI_RSPR3:
-        return s->reg_rspr[3];      // TODO: multi-access
+        if (s->reg_rspr_index < s->reg_rspr_len) {
+            return s->reg_rspr[s->reg_rspr_index++];
+        } else {
+            error_report("at91.mci: invalid access to RSPR[0-3]");
+            error_report("          response of length %d but accessed %d times",
+                         s->reg_rspr_len, s->reg_rspr_index);
+            abort();
+        }
 
     case MCI_RDR:
         return mci_rdr(s);
@@ -735,6 +748,13 @@ static void mci_reset_registers(MciState *s)
     s->reg_blkr = 0x00;
     s->reg_sr   = SR_CMDRDY | SR_TXRDY | SR_NOTBUSY | SR_ENDRX | SR_ENDTX | SR_RXBUFF | SR_TXBUFE;
     s->reg_imr  = 0x00;
+
+    s->reg_rspr[0] = 0;
+    s->reg_rspr[1] = 0;
+    s->reg_rspr[2] = 0;
+    s->reg_rspr[3] = 0;
+    s->reg_rspr_index = 0;
+    s->reg_rspr_len = 0;
 
     s->mcien = false;
     s->pwsen = false;
