@@ -14,9 +14,14 @@
 // - extended support for interrupt commands
 // - ...
 
-// Features that are not supported:
-// - SDIO interrupts
-// - ...
+// Notes:
+// - Commands (CMDR register):
+//   - MAXLAT field is ignored. in QEMU, commands are instantaneous, so
+//     timeout latency impossible to emulate.
+//   - OPDCMD field is ignored. Hardeare not emulated with this leve of
+//     detail.
+//   - SDIO interrupts are not supported
+//   - ...
 
 #include "at91-mci.h"
 #include "exec/address-spaces.h"
@@ -462,15 +467,6 @@ static void mci_do_command(MciState *s, uint32_t cmdr)
         // TODO: handle SDIO special commands
         warn_report("SDIO special commands not implemented yet (cmdr: 0x%x)", cmdr);
     }
-
-    // TODO/Notes:
-    // - MAXLAT field is ignored. in QEMU, commands are instantaneous, so
-    //   timeout latency impossible to emulate.
-    // - OPDCMD field is ignored. Hardeare not emulated with this leve of
-    //   detail.
-    // - PDC transmissions need to be fully set up before issuing the SD
-    //   transfer command. This seems to be according to spec, it might however
-    //   be possible to also set-up and use PDC after the fact.
 
     s->reg_sr |= SR_CMDRDY;
     mci_irq_update(s);
