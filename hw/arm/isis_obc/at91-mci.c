@@ -132,7 +132,6 @@ void at91_mci_set_master_clock(MciState *s, unsigned mclk)
     mci_update_mcck(s);
 }
 
-
 static inline SDBus *mci_get_selected_sdcard(MciState *s)
 {
     return s->selected_card == 0 ? &s->sdbus0 : &s->sdbus1;
@@ -259,11 +258,10 @@ static size_t mci_tr_length(MciState *s, uint32_t cmdr)
         return BLKR_BLKLEN(s);
 
     case CMDR_TRTYP_MMCSD_MULTIPLE_BLOCK:
-        if (BLKR_BCNT(s) == 0) {        // infinite block transfer
+        if (BLKR_BCNT(s) == 0)          // infinite block transfer
             return ((size_t)(-1));
-        } else {
+        else                            // finite block transfer
             return ((size_t)BLKR_BLKLEN(s)) * ((size_t)BLKR_BCNT(s));
-        }
 
     case CMDR_TRTYP_MMC_STREAM:
     case CMDR_TRTYP_SDIO_BYTE:
