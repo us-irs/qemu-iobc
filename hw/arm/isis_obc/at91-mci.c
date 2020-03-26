@@ -151,8 +151,6 @@ static void mci_pdc_do_read(MciState *s)
     if (len > s->rd_bytes_left)
         len = s->rd_bytes_left;
 
-    error_report("at91.mci: PDC read transfer of size %lu", len);
-
     uint8_t *data = g_new0(uint8_t, len);
 
     // read from SD card to buffer
@@ -209,8 +207,6 @@ static void mci_pdc_do_write(MciState *s)
     if (len > s->wr_bytes_left)
         len = s->wr_bytes_left;
 
-    error_report("at91.mci: PDC write transfer of size %lu", len);
-
     uint8_t *data = g_new0(uint8_t, len);
 
     // read DMA memory into buffer
@@ -246,8 +242,6 @@ static void mci_pdc_do_write(MciState *s)
         s->reg_sr |= SR_TXBUFE | SR_BLKE;
         s->tx_dma_enabled = false;
     }
-
-    error_report("at91.mci: s->pdc.reg_tncr: %d", s->pdc.reg_tncr);
 }
 
 
@@ -375,7 +369,6 @@ static void mci_do_command(MciState *s, uint32_t cmdr)
         abort();
     }
 
-    error_report("at91.mci: CMDNB: %u", CMDR_CMDNB(cmdr));
     request.cmd = CMDR_CMDNB(cmdr);
     request.arg = s->reg_argr;
     request.crc = 0;    // FIXME: not implemented in QEMU core, ignored for now, fix in future
@@ -488,7 +481,6 @@ static void mci_dma_rx_start(void *opaque)
     MciState *s = opaque;
     s->rx_dma_enabled = true;
 
-    error_report("rd_bytes_left: %lu", s->rd_bytes_left);
     if (s->rd_bytes_left)
         mci_pdc_do_read(s);
 }
@@ -503,8 +495,6 @@ static void mci_dma_tx_start(void *opaque)
 {
     MciState *s = opaque;
     s->tx_dma_enabled = true;
-
-    error_report("pdc tx start, bytes left: %lu", s->wr_bytes_left);
 
     if (s->wr_bytes_left)
         mci_pdc_do_write(s);
@@ -522,10 +512,6 @@ static void card_select_irq_handle(void *opaque, int n, int level)
     MciState *s = opaque;
     uint8_t card = !level;
 
-    if (s->selected_card != card) {
-        info_report("at91.mci card selection changed: %d", card);
-    }
-
     s->selected_card = card;
 }
 
@@ -534,7 +520,7 @@ static uint64_t mci_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
     MciState *s = opaque;
 
-    warn_report("at91.mci read access at 0x%03lx", offset);
+    info_report("at91.mci read access at 0x%03lx", offset);
 
     switch (offset)  {
     case MCI_MR:
@@ -587,7 +573,7 @@ static void mci_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned
 {
     MciState *s = opaque;
 
-    warn_report("at91.mci write access at 0x%03lx [value: 0x%08lx]", offset, value);
+    info_report("at91.mci write access at 0x%03lx [value: 0x%08lx]", offset, value);
 
     switch (offset)  {
     case MCI_CR:
