@@ -12,7 +12,10 @@
 // - support for register based reads and writes
 // - extended support for special commands (SPCMD, IOSPCMD)
 // - extended support for interrupt commands
-// - software reset
+// - ...
+
+// Features that are not supported:
+// - SDIO interrupts
 // - ...
 
 #include "at91-mci.h"
@@ -627,7 +630,8 @@ static void mci_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned
 
         if (value & CR_SWRST) {
             mci_reset_registers(s);
-            // TODO
+            qbus_reset_all(BUS(&s->sdbus0));
+            qbus_reset_all(BUS(&s->sdbus1));
         }
 
         break;
