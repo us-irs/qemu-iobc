@@ -386,6 +386,9 @@ static void mci_do_command(MciState *s, uint32_t cmdr)
     int rlen_expected;
     int rlen;
 
+    // clear flag for documentation, even though commands are instant in emulation
+    s->reg_sr &= ~SR_CMDRDY;
+
     if (CMDR_RSPTYP(cmdr) == CMDR_RSPTYP_NORSP) {
         rlen_expected = 0;
     } else if (CMDR_RSPTYP(cmdr) == CMDR_RSPTYP_48bit) {
