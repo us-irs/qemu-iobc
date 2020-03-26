@@ -6,6 +6,8 @@
 
 // Overview of TODOs:
 // - check implementation of block and multi-block transfers
+//   - second dma buffer
+//   - flags
 // - support for other transfer types
 // - support for register based reads and writes
 // - extended support for special commands (SPCMD, IOSPCMD)
@@ -86,6 +88,20 @@ enum cmdr_trtyp {
     CMDR_TRTYP_MMC_STREAM           = 2,
     CMDR_TRTYP_SDIO_BYTE            = 4,
     CMDR_TRTYP_SDIO_BLOCK           = 5,
+};
+
+enum cmdr_spcmd {
+    CMDR_SPCMD_NONE     = 0,
+    CMDR_SPCMD_INIT     = 1,
+    CMDR_SPCMD_SYNC     = 2,
+    CMDR_SPCMD_INT_CMD  = 4,
+    CMDR_SPCMD_INT_RESP = 5,
+};
+
+enum cmdr_iospcmd {
+    CMDR_IOSPCMD_NONE    = 0,
+    CMDR_IOSPCMD_SUSPEND = 1,
+    CMDR_IOSPCMD_RESUME  = 2,
 };
 
 #define BLKR_BCNT(s)    ((s)->reg_blkr & 0xFFFF)
@@ -434,12 +450,12 @@ static void mci_do_command(MciState *s, uint32_t cmdr)
         }
     }
 
-    if (CMDR_SPCMD(cmdr)) {
+    if (CMDR_SPCMD(cmdr) != CMDR_SPCMD_NONE) {
         // TODO: handle special commands
         warn_report("special commands not implemented yet (cmdr: 0x%x)", cmdr);
     }
 
-    if (CMDR_IOSPCMD(cmdr)) {
+    if (CMDR_IOSPCMD(cmdr) != CMDR_IOSPCMD_NONE) {
         // TODO: handle SDIO special commands
         warn_report("SDIO special commands not implemented yet (cmdr: 0x%x)", cmdr);
     }
