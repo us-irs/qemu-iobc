@@ -54,6 +54,7 @@ typedef struct {
 
     size_t rd_bytes_left;
     size_t wr_bytes_left;
+    size_t wr_bytes_blk;
 
     At91Pdc pdc;
     bool rx_dma_enabled;
