@@ -5,7 +5,13 @@
  */
 
 // Overview of TODOs:
-// - everything
+// - check implementation of block and multi-block transfers
+// - support for other transfer types
+// - support for register based reads and writes
+// - extended support for special commands (SPCMD, IOSPCMD)
+// - extended support for interrupt commands
+// - response register multi-access pattern
+// - ...
 
 #include "at91-mci.h"
 #include "exec/address-spaces.h"
@@ -137,7 +143,7 @@ static void mci_pdc_do_read(MciState *s)
 {
     SDBus *sd = mci_get_selected_sdcard(s);
 
-    // TODO: special handling for multi-block, stream, sdio-byte, sdio-block transfer types?
+    // TODO: special handling for stream, sdio-byte, sdio-block transfer types?
 
     size_t len = s->pdc.reg_rcr;
     if (!(s->reg_mr & MR_PDCFBYTE))
