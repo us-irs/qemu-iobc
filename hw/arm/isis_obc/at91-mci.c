@@ -9,20 +9,29 @@
 //   - second dma buffer
 //   - flags
 // - support for other transfer types
-// - support for register based reads and writes
-// - extended support for special commands (SPCMD, IOSPCMD)
-// - extended support for interrupt commands
 // - ...
-
+//
 // Notes:
 // - Commands (CMDR register):
 //   - MAXLAT field is ignored. in QEMU, commands are instantaneous, so
 //     timeout latency impossible to emulate.
 //   - OPDCMD field is ignored. Hardeare not emulated with this leve of
 //     detail.
-//   - SDIO interrupts are not supported
 //   - ...
+// - Write to TDR register only allowed when transaction is in progress:
+//   This could cause problems if a program would want to "pre-load" the TDR
+//   register before sending a write command... According to the write functional
+//   flow diagram of the spec, writes to TDR should however only happen after
+//   successfully sending a write command and checking its status. If something
+//   like this happens the emulator will abort.
+// - No failure injection possible due to QEMU SD-Card interface. This affects
+//   the flags: RINDE, RDIRE, RCRCE, RENDE, RTOE, DCRCE, DTOE, OVRE, UNRE.
+// - SDIO interrupts are not supported. This affects SDIOIRQA, SDIOIRQB.
 // - MMC stream transfer not supported
+// - special commands (SPCMD, IOSPCMD) might not be fully supported
+// - RDPROOF/WRPROOF not supported due to HW not being emulated with that kind
+//   of detail
+// - ...
 
 #include "at91-mci.h"
 #include "exec/address-spaces.h"
@@ -167,7 +176,7 @@ static void mci_pdc_do_read(MciState *s)
 {
     SDBus *sd = mci_get_selected_sdcard(s);
 
-    // TODO: special handling for stream, sdio-byte, sdio-block transfer types?
+    // TODO: special handling for sdio-byte, sdio-block transfer types?
 
     size_t len = s->pdc.reg_rcr;
     if (!(s->reg_mr & MR_PDCFBYTE))
