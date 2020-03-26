@@ -22,6 +22,7 @@
 //     detail.
 //   - SDIO interrupts are not supported
 //   - ...
+// - MMC stream transfer not supported
 
 #include "at91-mci.h"
 #include "exec/address-spaces.h"
@@ -281,11 +282,14 @@ static size_t mci_tr_length(MciState *s, uint32_t cmdr)
         else                            // finite block transfer
             return ((size_t)BLKR_BLKLEN(s)) * ((size_t)BLKR_BCNT(s));
 
-    case CMDR_TRTYP_MMC_STREAM:
     case CMDR_TRTYP_SDIO_BYTE:
+        return BLKR_BCNT(s);
+
     case CMDR_TRTYP_SDIO_BLOCK:
-        // TODO
-        error_report("at91.mci: transfer type not supported yet: %d", CMDR_TRTYP(cmdr));
+        return ((size_t)BLKR_BLKLEN(s)) * ((size_t)BLKR_BCNT(s));
+
+    case CMDR_TRTYP_MMC_STREAM:
+        error_report("at91.mci: MMC stream data transfer not supported");
         abort();
 
     default:
