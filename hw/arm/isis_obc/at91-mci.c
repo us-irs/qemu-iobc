@@ -298,83 +298,51 @@ static size_t mci_tr_length(MciState *s, uint32_t cmdr)
     }
 }
 
-static void mci_tr_start_pdc_read(MciState *s, uint32_t cmdr)
+static void mci_tr_start_read(MciState *s, uint32_t cmdr)
 {
     s->rd_bytes_left = mci_tr_length(s, cmdr);
 
-    if (s->rx_dma_enabled)
+    if ((s->reg_mr & MR_PDCMODE) && s->rx_dma_enabled)
         mci_pdc_do_read(s);
+    else if (!(s->reg_mr & MR_PDCMODE))
+        s->reg_sr |= SR_RXRDY;
 }
 
-static void mci_tr_start_pdc_write(MciState *s, uint32_t cmdr)
+static void mci_tr_start_write(MciState *s, uint32_t cmdr)
 {
     s->wr_bytes_left = mci_tr_length(s, cmdr);
+    s->wr_bytes_blk = 0;
     s->reg_sr &= ~SR_NOTBUSY;
 
-    if (s->tx_dma_enabled)
+    if ((s->reg_mr & MR_PDCMODE) && s->tx_dma_enabled)
         mci_pdc_do_write(s);
-}
-
-static void mci_tr_start_reg_read(MciState *s, uint32_t cmdr)
-{
-    s->rd_bytes_left = mci_tr_length(s, cmdr);
-
-    // TODO
-}
-
-static void mci_tr_start_reg_write(MciState *s, uint32_t cmdr)
-{
-    s->wr_bytes_left = mci_tr_length(s, cmdr);
-    s->reg_sr &= ~SR_NOTBUSY;
-
-    // TODO
+    else if (!(s->reg_mr & MR_PDCMODE))
+        s->reg_sr |= SR_TXRDY;
 }
 
 static void mci_tr_start(MciState *s, uint32_t cmdr)
 {
-    if (s->reg_mr & MR_PDCMODE) {
-        if (CMDR_TRDIR & cmdr)          // read
-            mci_tr_start_pdc_read(s, cmdr);
-        else                            // write
-            mci_tr_start_pdc_write(s, cmdr);
-    } else {
-        if (CMDR_TRDIR & cmdr)          // read
-            mci_tr_start_reg_read(s, cmdr);
-        else                            // write
-            mci_tr_start_reg_write(s, cmdr);
-    }
-}
-
-
-static void mci_tr_stop_pdc_tr(MciState *s, uint32_t cmdr)
-{
-    s->wr_bytes_left = 0;
-    s->rd_bytes_left = 0;
-    s->reg_sr &= ~SR_DTIP;
-    s->reg_sr |= SR_NOTBUSY;
-
-    // TODO
-}
-
-static void mci_tr_stop_reg_tr(MciState *s, uint32_t cmdr)
-{
-    s->rd_bytes_left = 0;
-    s->wr_bytes_left = 0;
-    s->reg_sr &= ~SR_DTIP;
-    s->reg_sr |= SR_NOTBUSY;
-
-    // TODO
+    if (CMDR_TRDIR & cmdr)
+        mci_tr_start_read(s, cmdr);
+    else
+        mci_tr_start_write(s, cmdr);
 }
 
 static void mci_tr_stop(MciState *s, uint32_t cmdr)
 {
-    // Stop transmission command does not have a direction.
+    // Note: Stop transmission command does not have a direction.
+    //   Due to this, we also set NOTBUSY and BLKE. According to spec, these
+    //   flags must be used only for write transactions, so we assume that
+    //   setting them for read transactions doesn't break anything as depending
+    //   on them in any way is considered illegal behavior.
 
-    if (s->reg_mr & MR_PDCMODE) {
-        mci_tr_stop_pdc_tr(s, cmdr);
-    } else {
-        mci_tr_stop_reg_tr(s, cmdr);
-    }
+    s->rd_bytes_left = 0;
+    s->wr_bytes_left = 0;
+    s->wr_bytes_blk = 0;
+    s->reg_sr &= ~(SR_DTIP | SR_RXRDY | SR_TXRDY);
+    s->reg_sr |= SR_NOTBUSY | SR_BLKE;
+
+    // TODO: ..?
 }
 
 
@@ -463,6 +431,8 @@ static void mci_do_command(MciState *s, uint32_t cmdr)
             error_report("at91.mci: invalid value for TRCMD field");
             abort();
         }
+
+        mci_irq_update(s);
     }
 
     if (CMDR_SPCMD(cmdr) != CMDR_SPCMD_NONE) {
@@ -482,24 +452,107 @@ static void mci_do_command(MciState *s, uint32_t cmdr)
 
 static uint32_t mci_rdr(MciState *s)
 {
+    SDBus *sd = mci_get_selected_sdcard(s);
+
     if (s->rd_bytes_left == 0) {
         error_report("at91.mci: access to RDR register without active read transmission");
         abort();
     }
 
-    // TODO
+    if (s->reg_mr & MR_PDCMODE) {
+        error_report("at91.mci: access to RDR register while PDCMODE is set");
+        abort();
+    }
 
-    return 0;
+    if (!sdbus_data_ready(sd)) {
+        error_report("at91.mci: sd card has no data available for read");
+        abort();
+    }
+
+    if (!(s->reg_sr & SR_RXRDY)) {
+        error_report("at91.mci: access to RDR while TXRDY not set");
+        abort();
+    }
+
+    s->reg_sr &= ~SR_RXRDY;
+
+    size_t len = s->rd_bytes_left <= 4 ? s->rd_bytes_left : 4;
+    uint32_t buf = 0;
+
+    // Note: The spec does not clarify endianess/order, only that "words" are
+    // read, so assume consecutive bytes.
+    for (int i = 0; i < len; i++) {
+        ((uint8_t *)&buf)[i] = sdbus_read_data(sd);
+    }
+    s->rd_bytes_left -= len;
+
+    if (s->rd_bytes_left == 0) {
+        s->reg_sr &= ~SR_DTIP;
+    } else {
+        s->reg_sr |= SR_RXRDY;      // instantly ready to read next datum, if available
+    }
+
+    // Note:
+    //   According to spec, BLKE must be only used on writes, thus we don't set
+    //   it here.
+
+    mci_irq_update(s);
+    return buf;
 }
 
 static void mci_tdr(MciState *s, uint32_t data)
 {
+    SDBus *sd = mci_get_selected_sdcard(s);
+
     if (s->wr_bytes_left == 0) {
         error_report("at91.mci: access to TDR register without active write transmission");
+        // See top comments and comments on TXRDY below if this abort ever
+        // becomes an issue...
         abort();
     }
 
-    // TODO
+    if (s->reg_mr & MR_PDCMODE) {
+        error_report("at91.mci: access to TDR register while PDCMODE is set");
+        abort();
+    }
+
+    if (!(s->reg_sr & SR_TXRDY)) {
+        error_report("at91.mci: access to TDR while TXRDY not set");
+        abort();
+    }
+
+    s->reg_sr &= ~SR_TXRDY;
+
+    size_t len = s->wr_bytes_left <= 4 ? s->wr_bytes_left : 4;
+
+    // Note: The spec does not clarify endianess/order, only that "words" are
+    // written, so assume consecutive bytes.
+    for (int i = 0; i < len; i++) {
+        sdbus_write_data(sd, ((uint8_t *)&data)[i]);
+    }
+    s->wr_bytes_left -= len;
+    s->wr_bytes_blk += len;
+
+    // On writes, check for full block transfers and set BLKE accordingly.
+    if (s->wr_bytes_blk >= BLKR_BLKLEN(s)) {
+        s->wr_bytes_blk -= BLKR_BLKLEN(s);
+        s->reg_sr |= SR_BLKE;
+    }
+
+    if (s->wr_bytes_left == 0) {
+        s->reg_sr |= SR_NOTBUSY | SR_BLKE;
+        s->reg_sr &= ~SR_DTIP;
+        s->wr_bytes_blk = 0;
+    }
+
+    // Note: We deliberately set TXRDY even if no more bytes are left to write.
+    //   It seems that the behavior of the AT91 would be to put the data to be
+    //   written on hold until writes can occur. For now, this functionality is
+    //   not implemented and data is written directy. Thus set TXRDY instantly
+    //   and abort on access outside transaction.
+
+    s->reg_sr |= SR_TXRDY;      // instantly ready to write next datum
+    mci_irq_update(s);
 }
 
 static void mci_dma_rx_start(void *opaque)
@@ -507,8 +560,14 @@ static void mci_dma_rx_start(void *opaque)
     MciState *s = opaque;
     s->rx_dma_enabled = true;
 
-    if (s->rd_bytes_left)
+    if (s->rd_bytes_left) {
+        if (!(s->reg_mr & MR_PDCMODE)) {
+            error_report("at91.mci: attempting PDC read transfer without PDCMODE set");
+            abort();
+        }
+
         mci_pdc_do_read(s);
+    }
 }
 
 static void mci_dma_rx_stop(void *opaque)
@@ -522,8 +581,14 @@ static void mci_dma_tx_start(void *opaque)
     MciState *s = opaque;
     s->tx_dma_enabled = true;
 
-    if (s->wr_bytes_left)
+    if (s->wr_bytes_left) {
+        if (!(s->reg_mr & MR_PDCMODE)) {
+            error_report("at91.mci: attempting PDC write transfer without PDCMODE set");
+            abort();
+        }
+
         mci_pdc_do_write(s);
+    }
 }
 
 static void mci_dma_tx_stop(void *opaque)
