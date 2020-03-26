@@ -44,6 +44,8 @@ typedef struct {
     uint32_t reg_sr;
     uint32_t reg_imr;
     uint32_t reg_rspr[4];
+    uint8_t reg_rspr_index;
+    uint8_t reg_rspr_len;
 
     bool mcien;
     bool pwsen;
