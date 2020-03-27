@@ -4,19 +4,12 @@
  * See at91-mci.h for details.
  */
 
-// Overview of TODOs:
-// - check implementation of block and multi-block PDC transfers
-//   - second dma buffer
-//   - flags
-//   - support for other transfer types
-//
 // Notes:
 // - Commands (CMDR register):
 //   - MAXLAT field is ignored. in QEMU, commands are instantaneous, so
 //     timeout latency impossible to emulate.
 //   - OPDCMD field is ignored. Hardeare not emulated with this leve of
 //     detail.
-//   - ...
 // - Write to TDR register only allowed when transaction is in progress:
 //   This could cause problems if a program would want to "pre-load" the TDR
 //   register before sending a write command... According to the write functional
@@ -30,7 +23,6 @@
 // - special commands (SPCMD, IOSPCMD) might not be fully supported
 // - RDPROOF/WRPROOF not supported due to HW not being emulated with that kind
 //   of detail
-// - ...
 
 #include "at91-mci.h"
 #include "exec/address-spaces.h"
