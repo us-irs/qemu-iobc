@@ -430,7 +430,6 @@ static void mci_do_command(MciState *s, uint32_t cmdr)
         abort();
     }
     if (!rlen && rlen != rlen_expected) {
-        warn_report("at91.mci: sdbus_do_command failed: %d", rlen);
         s->reg_sr |= SR_RTOE;
     }
 
@@ -653,8 +652,6 @@ static uint64_t mci_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
     MciState *s = opaque;
 
-    info_report("at91.mci read access at 0x%03lx", offset);
-
     switch (offset)  {
     case MCI_MR:
         return s->reg_mr;
@@ -714,8 +711,6 @@ static uint64_t mci_mmio_read(void *opaque, hwaddr offset, unsigned size)
 static void mci_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
     MciState *s = opaque;
-
-    info_report("at91.mci write access at 0x%03lx [value: 0x%08lx]", offset, value);
 
     switch (offset)  {
     case MCI_CR:
