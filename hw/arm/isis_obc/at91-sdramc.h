@@ -13,7 +13,6 @@
 
 #include "qemu/osdep.h"
 #include "hw/sysbus.h"
-#include "hw/ptimer.h"
 
 #include "ioxfer-server.h"
 

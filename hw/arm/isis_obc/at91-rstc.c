@@ -11,6 +11,7 @@
 
 #include "at91-rstc.h"
 #include "qemu/error-report.h"
+#include "hw/irq.h"
 
 #define RSTC_KEY_PASSWORD   0xa5
 

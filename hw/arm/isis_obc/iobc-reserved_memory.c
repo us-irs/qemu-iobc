@@ -7,6 +7,7 @@
 #include "qemu/osdep.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"
+#include "hw/qdev-properties.h"
 #include "hw/sysbus.h"
 
 #include "iobc-reserved_memory.h"

@@ -6,6 +6,7 @@
 
 #include "gpio-pushbutton.h"
 #include "qemu/error-report.h"
+#include "hw/irq.h"
 
 #include "io/channel.h"
 #include "io/channel-socket.h"

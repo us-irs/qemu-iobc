@@ -5,8 +5,10 @@
  */
 
 #include "at91-sdramc.h"
-#include "qemu/error-report.h"
 #include "qapi/error.h"
+#include "qemu/error-report.h"
+#include "hw/irq.h"
+#include "hw/qdev-properties.h"
 
 
 #define IOX_CAT_FAULT       0x02

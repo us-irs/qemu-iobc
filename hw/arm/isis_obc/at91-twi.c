@@ -12,6 +12,8 @@
 #include "exec/address-spaces.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"
+#include "hw/irq.h"
+#include "hw/qdev-properties.h"
 
 #define IOX_CAT_DATA            0x01
 #define IOX_CAT_FAULT           0x02
@@ -93,8 +95,11 @@ static void twi_update_clock(TwiState *s)
     unsigned hdiv = (CWGR_CHDIV(s) * (1 << CWGR_CKDIV(s))) + 4;
     s->clock = s->mclk / (ldiv + hdiv);
 
-    if (s->clock)   // avoid issues during initialization
+    if (s->clock) {     // avoid issues during initialization
+        ptimer_transaction_begin(s->chrtx_timer);
         ptimer_set_freq(s->chrtx_timer, s->clock);
+        ptimer_transaction_commit(s->chrtx_timer);
+    }
 }
 
 void at91_twi_set_master_clock(TwiState *s, unsigned mclk)
@@ -167,7 +172,10 @@ static void xfer_chrtx_timer_tick(void *opaque)
     xfer_send_frame_stop(s);
 
     buffer_reset(&s->sendbuf);
+
+    ptimer_transaction_begin(s->chrtx_timer);
     ptimer_stop(s->chrtx_timer);
+    ptimer_transaction_commit(s->chrtx_timer);
 
     s->reg_sr |= SR_TXCOMP;
     twi_update_irq(s);
@@ -180,8 +188,10 @@ static void xfer_chr_transmit(TwiState *s, uint8_t value)
 
     // the actual send happens when all data has been gathered in the send task
     // resets timer if already running
+    ptimer_transaction_begin(s->chrtx_timer);
     ptimer_set_limit(s->chrtx_timer, 2 /* load-to-shift, send shift */ , true);
     ptimer_run(s->chrtx_timer, true);
+    ptimer_transaction_commit(s->chrtx_timer);
 
     s->reg_sr |= SR_TXRDY;
     twi_update_irq(s);
@@ -648,15 +658,13 @@ static void twi_device_init(Object *obj)
 {
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
     TwiState *s = AT91_TWI(obj);
-    QEMUBH *bh;
 
     sysbus_init_irq(sbd, &s->irq);
 
     memory_region_init_io(&s->mmio, OBJECT(s), &twi_mmio_ops, s, "at91.twi", 0x4000);
     sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->mmio);
 
-    bh = qemu_bh_new(xfer_chrtx_timer_tick, s);
-    s->chrtx_timer = ptimer_init(bh, PTIMER_POLICY_DEFAULT);
+    s->chrtx_timer = ptimer_init(xfer_chrtx_timer_tick, s, PTIMER_POLICY_DEFAULT);
 }
 
 static void twi_reset_registers(TwiState *s)

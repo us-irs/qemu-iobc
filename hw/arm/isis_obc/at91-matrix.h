@@ -11,7 +11,6 @@
 
 #include "qemu/osdep.h"
 #include "hw/sysbus.h"
-#include "hw/ptimer.h"
 
 
 #define TYPE_AT91_MATRIX "at91-matrix"

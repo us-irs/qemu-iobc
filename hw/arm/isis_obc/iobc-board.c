@@ -14,6 +14,7 @@
 #include "hw/boards.h"
 #include "hw/arm/boot.h"
 #include "hw/misc/unimp.h"
+#include "sysemu/sysemu.h"
 #include "cpu.h"
 
 #include "iobc-reserved_memory.h"
@@ -399,7 +400,7 @@ static void iobc_init(MachineState *machine)
         warn_report("No firmware specified: Use -bios <file> to load firmware");
     }
 
-    arm_load_kernel(s->cpu, &iobc_board_binfo);
+    arm_load_kernel(s->cpu, machine, &iobc_board_binfo);
 }
 
 static void iobc_machine_init(MachineClass *mc)
