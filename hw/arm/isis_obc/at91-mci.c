@@ -173,9 +173,6 @@ static inline SDBus *mci_get_selected_sdcard(MciState *s)
 }
 
 
-// TODO
-// - set RXRDY and TXRDY in PDC functions?
-
 static void mci_pdc_do_read_rcr(MciState *s)
 {
     SDBus *sd = mci_get_selected_sdcard(s);
@@ -236,12 +233,15 @@ static void mci_pdc_do_read(MciState *s)
     }
 
     if (s->rd_bytes_left == 0) {
-        s->reg_sr &= ~SR_DTIP;
+        s->reg_sr &= ~(SR_DTIP | SR_RXRDY);
     }
 
     if (s->pdc.reg_rcr == 0 && s->pdc.reg_rncr == 0) {
         s->reg_sr |= SR_RXBUFF;
         s->rx_dma_enabled = false;
+
+        if (s->rd_bytes_left)
+            s->reg_sr |= SR_RXRDY;
     }
 }
 
@@ -304,7 +304,7 @@ static void mci_pdc_do_write(MciState *s)
     if (s->wr_bytes_left == 0) {
         // Note: In PDC mode, BLKE is set for the last block transferred.
         s->reg_sr |= SR_NOTBUSY | SR_BLKE;
-        s->reg_sr &= ~SR_DTIP;
+        s->reg_sr &= ~(SR_DTIP | SR_TXRDY);
     }
 
     if (s->pdc.reg_tcr == 0 && s->pdc.reg_tncr == 0) {
@@ -314,6 +314,9 @@ static void mci_pdc_do_write(MciState *s)
         // for unlimited block transfer: make sure that the last block sent is marked as such
         if (s->wr_bytes_left == BLKLEN_MULTIBLOCK_UNLIMITED && s->wr_bytes_blk == 0)
             s->reg_sr |= SR_BLKE;
+
+        if (s->wr_bytes_left)
+            s->reg_sr |= SR_TXRDY;
     }
 }
 
