@@ -173,11 +173,12 @@ static inline SDBus *mci_get_selected_sdcard(MciState *s)
 }
 
 
-static void mci_pdc_do_read(MciState *s)
+// TODO
+// - set RXRDY and TXRDY in PDC functions?
+
+static void mci_pdc_do_read_rcr(MciState *s)
 {
     SDBus *sd = mci_get_selected_sdcard(s);
-
-    // TODO: special handling for sdio-byte, sdio-block transfer types?
 
     size_t len = s->pdc.reg_rcr;
     if (!(s->reg_mr & MR_PDCFBYTE))
@@ -210,21 +211,35 @@ static void mci_pdc_do_read(MciState *s)
 
     s->pdc.reg_rpr += len;
     s->pdc.reg_rcr -= (s->reg_mr & MR_PDCFBYTE) ? len : len / 4;
-    s->rd_bytes_left -= len;
 
-    if (!s->pdc.reg_rcr)
+    if (s->rd_bytes_left != BLKLEN_MULTIBLOCK_UNLIMITED)
+        s->rd_bytes_left -= len;
+}
+
+static void mci_pdc_do_read(MciState *s)
+{
+    if (s->pdc.reg_rcr)
+        mci_pdc_do_read_rcr(s);
+
+    if (s->pdc.reg_rcr == 0)
         s->reg_sr |= SR_ENDRX;
 
-    // TODO
-    // - handle second DMA buffer
-    // - NOTBUSY
-    // - set RXRDY, TXRDY
+    if (s->pdc.reg_rcr == 0 && s->pdc.reg_rncr != 0) {
+        s->pdc.reg_rcr = s->pdc.reg_rncr;
+        s->pdc.reg_rncr = 0;
 
-    if (!s->rd_bytes_left) {
+        s->pdc.reg_rpr = s->pdc.reg_rnpr;
+        s->pdc.reg_rnpr = 0;
+
+        if (s->rd_bytes_left)
+            mci_pdc_do_read_rcr(s);
+    }
+
+    if (s->rd_bytes_left == 0) {
         s->reg_sr &= ~SR_DTIP;
     }
 
-    if (!s->pdc.reg_rcr && !s->pdc.reg_rncr) {
+    if (s->pdc.reg_rcr == 0 && s->pdc.reg_rncr == 0) {
         s->reg_sr |= SR_RXBUFF;
         s->rx_dma_enabled = false;
     }
