@@ -5,11 +5,10 @@
  */
 
 // Overview of TODOs:
-// - check implementation of block and multi-block transfers
+// - check implementation of block and multi-block PDC transfers
 //   - second dma buffer
 //   - flags
-// - support for other transfer types
-// - ...
+//   - support for other transfer types
 //
 // Notes:
 // - Commands (CMDR register):
@@ -147,6 +146,8 @@ enum cmdr_iospcmd {
 #define SR_OVRE         BIT(30)
 #define SR_UNRE         BIT(31)
 
+#define BLKLEN_MULTIBLOCK_UNLIMITED   ((size_t)-1)
+
 
 static void mci_reset_registers(MciState *s);
 
@@ -208,7 +209,7 @@ static void mci_pdc_do_read(MciState *s)
     g_free(data);
 
     s->pdc.reg_rpr += len;
-    s->pdc.reg_rcr -= (s->reg_mr & MR_PDCFBYTE) ? len: len / 4;
+    s->pdc.reg_rcr -= (s->reg_mr & MR_PDCFBYTE) ? len : len / 4;
     s->rd_bytes_left -= len;
 
     if (!s->pdc.reg_rcr)
@@ -220,7 +221,6 @@ static void mci_pdc_do_read(MciState *s)
     // - set RXRDY, TXRDY
 
     if (!s->rd_bytes_left) {
-        s->reg_sr |= SR_BLKE;       // TODO: only set on block transfer?
         s->reg_sr &= ~SR_DTIP;
     }
 
@@ -230,7 +230,7 @@ static void mci_pdc_do_read(MciState *s)
     }
 }
 
-static void mci_pdc_do_write(MciState *s)
+static void mci_pdc_do_write_tcr(MciState *s)
 {
     SDBus *sd = mci_get_selected_sdcard(s);
 
@@ -259,22 +259,46 @@ static void mci_pdc_do_write(MciState *s)
     g_free(data);
 
     s->pdc.reg_tpr += len;
-    s->pdc.reg_tcr -= (s->reg_mr & MR_PDCFBYTE) ? len: len / 4;
-    s->wr_bytes_left -= len;
+    s->pdc.reg_tcr -= (s->reg_mr & MR_PDCFBYTE) ? len : len / 4;
 
-    if (!s->pdc.reg_tcr)
+    if (s->wr_bytes_left != BLKLEN_MULTIBLOCK_UNLIMITED)
+        s->wr_bytes_left -= len;
+
+    s->wr_bytes_blk = (s->wr_bytes_blk + len) % BLKR_BLKLEN(s);
+}
+
+static void mci_pdc_do_write(MciState *s)
+{
+    if (s->pdc.reg_tcr)
+        mci_pdc_do_write_tcr(s);
+
+    if (s->pdc.reg_tcr == 0)
         s->reg_sr |= SR_ENDTX;
 
-    // TODO: flags and stuff, second DMA buffer
+    if (s->pdc.reg_tcr == 0 && s->pdc.reg_tncr != 0) {
+        s->pdc.reg_tcr = s->pdc.reg_tncr;
+        s->pdc.reg_tncr = 0;
 
-    if (!s->wr_bytes_left) {
+        s->pdc.reg_tpr = s->pdc.reg_tnpr;
+        s->pdc.reg_tnpr = 0;
+
+        if (s->wr_bytes_left)
+            mci_pdc_do_write_tcr(s);
+    }
+
+    if (s->wr_bytes_left == 0) {
+        // Note: In PDC mode, BLKE is set for the last block transferred.
         s->reg_sr |= SR_NOTBUSY | SR_BLKE;
         s->reg_sr &= ~SR_DTIP;
     }
 
-    if (!s->pdc.reg_tcr && !s->pdc.reg_tncr) {
-        s->reg_sr |= SR_TXBUFE | SR_BLKE;
+    if (s->pdc.reg_tcr == 0 && s->pdc.reg_tncr == 0) {
+        s->reg_sr |= SR_TXBUFE;
         s->tx_dma_enabled = false;
+
+        // for unlimited block transfer: make sure that the last block sent is marked as such
+        if (s->wr_bytes_left == BLKLEN_MULTIBLOCK_UNLIMITED && s->wr_bytes_blk == 0)
+            s->reg_sr |= SR_BLKE;
     }
 }
 
@@ -287,7 +311,7 @@ static size_t mci_tr_length(MciState *s, uint32_t cmdr)
 
     case CMDR_TRTYP_MMCSD_MULTIPLE_BLOCK:
         if (BLKR_BCNT(s) == 0)          // infinite block transfer
-            return ((size_t)(-1));
+            return BLKLEN_MULTIBLOCK_UNLIMITED;
         else                            // finite block transfer
             return ((size_t)BLKR_BLKLEN(s)) * ((size_t)BLKR_BCNT(s));
 
@@ -340,18 +364,16 @@ static void mci_tr_start(MciState *s, uint32_t cmdr)
 static void mci_tr_stop(MciState *s, uint32_t cmdr)
 {
     // Note: Stop transmission command does not have a direction.
-    //   Due to this, we also set NOTBUSY and BLKE. According to spec, these
-    //   flags must be used only for write transactions, so we assume that
-    //   setting them for read transactions doesn't break anything as depending
-    //   on them in any way is considered illegal behavior.
+    //   Due to this, we also set NOTBUSY. According to spec, this flags must be
+    //   used only for write transactions, so we assume that setting them for
+    //   read transactions doesn't break anything as depending on them in any way
+    //   is considered illegal behavior.
 
     s->rd_bytes_left = 0;
     s->wr_bytes_left = 0;
     s->wr_bytes_blk = 0;
     s->reg_sr &= ~(SR_DTIP | SR_RXRDY | SR_TXRDY);
-    s->reg_sr |= SR_NOTBUSY | SR_BLKE;
-
-    // TODO: ..?
+    s->reg_sr |= SR_NOTBUSY;
 }
 
 
@@ -563,6 +585,7 @@ static void mci_tdr(MciState *s, uint32_t data)
     s->reg_sr |= SR_TXRDY;      // instantly ready to write next datum
     mci_irq_update(s);
 }
+
 
 static void mci_dma_rx_start(void *opaque)
 {
