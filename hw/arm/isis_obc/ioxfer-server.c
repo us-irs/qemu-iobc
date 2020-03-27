@@ -74,7 +74,7 @@ void iox_server_set_handler(IoXferServer *srv, iox_frame_handler *handler, void*
 int iox_server_open(IoXferServer *srv, SocketAddress *addr, Error **errp)
 {
     qio_net_listener_set_client_func(srv->listener, server_accept, srv, NULL);
-    return qio_net_listener_open_sync(srv->listener, addr, errp);
+    return qio_net_listener_open_sync(srv->listener, addr, 1, errp);
 }
 
 void iox_server_close(IoXferServer *srv)

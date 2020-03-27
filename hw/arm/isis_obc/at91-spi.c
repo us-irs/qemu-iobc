@@ -14,10 +14,12 @@
 #include "at91-spi.h"
 #include "exec/address-spaces.h"
 #include "sysemu/cpus.h"
+#include "qapi/error.h"
 #include "qemu/bswap.h"
 #include "qemu/error-report.h"
-#include "qapi/error.h"
 #include "qemu/log.h"
+#include "hw/irq.h"
+#include "hw/qdev-properties.h"
 
 
 #define IOX_CAT_DATA            0x01

@@ -6,6 +6,7 @@
 
 #include "at91-aic.h"
 #include "qemu/error-report.h"
+#include "hw/irq.h"
 
 #define AIC_SMR0            0x000
 #define AIC_SMR31           0x07C

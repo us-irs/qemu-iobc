@@ -18,6 +18,8 @@
 #include "at91-dbgu.h"
 #include "qemu/error-report.h"
 #include "qemu/log.h"
+#include "hw/irq.h"
+#include "hw/qdev-properties.h"
 
 
 #define DEFAULT_CIDR    0x00000000      // TODO(at91.dbgu.chip_id): get actual chip id
