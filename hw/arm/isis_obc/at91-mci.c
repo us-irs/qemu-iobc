@@ -29,6 +29,8 @@
 #include "qapi/error.h"
 #include "qemu/error-report.h"
 #include "sysemu/blockdev.h"
+#include "hw/irq.h"
+#include "hw/qdev-properties.h"
 
 #define MCI_CR          0x00
 #define MCI_MR          0x04

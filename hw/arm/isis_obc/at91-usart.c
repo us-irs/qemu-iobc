@@ -27,6 +27,8 @@
 #include "exec/address-spaces.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"
+#include "hw/irq.h"
+#include "hw/qdev-properties.h"
 
 
 #define IOX_CAT_DATA            0x01

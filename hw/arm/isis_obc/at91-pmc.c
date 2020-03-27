@@ -11,6 +11,7 @@
 
 #include "at91-pmc.h"
 #include "qemu/error-report.h"
+#include "hw/irq.h"
 
 
 #define CLOCK_FREQ_SLOW        32768    // slow clock oscillator frequency

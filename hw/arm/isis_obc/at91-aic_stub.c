@@ -6,6 +6,7 @@
 
 #include "at91-aic_stub.h"
 #include "qemu/error-report.h"
+#include "hw/irq.h"
 
 
 static void aicstub_irq_handle(void *opaque, int n, int level)

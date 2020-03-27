@@ -6,6 +6,7 @@
 
 #include "at91-pit.h"
 #include "qemu/error-report.h"
+#include "hw/irq.h"
 
 
 #define PIT_MR      0x00
@@ -25,7 +26,9 @@ void at91_pit_set_master_clock(PitState *s, unsigned mclk)
     s->mclk = mclk;
 
     if (s->timer) {
+        ptimer_transaction_begin(s->timer);
         ptimer_set_freq(s->timer, s->mclk / 16);
+        ptimer_transaction_commit(s->timer);
     }
 }
 
@@ -44,7 +47,9 @@ static void pit_timer_tick(void *opaque)
 
     // disable timer if requested
     if (!(s->reg_mr & MR_PITEN)) {
+        ptimer_transaction_begin(s->timer);
         ptimer_stop(s->timer);
+        ptimer_transaction_commit(s->timer);
     }
 }
 
@@ -101,9 +106,11 @@ static void pit_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned
         s->reg_mr = value;
 
         if (value & MR_PITEN) {
+            ptimer_transaction_begin(s->timer);
             ptimer_set_freq(s->timer, s->mclk / 16);
             ptimer_set_limit(s->timer, pit_timer_period(s), 1);
             ptimer_run(s->timer, 0);
+            ptimer_transaction_commit(s->timer);
         } else {
             // do nothing: timer is disabled and stopped once CPIV reaches zero
         }
@@ -138,10 +145,8 @@ static void pit_device_init(Object *obj)
 {
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
     PitState *s = AT91_PIT(obj);
-    QEMUBH *bh;
 
-    bh = qemu_bh_new(pit_timer_tick, s);
-    s->timer = ptimer_init(bh, PTIMER_POLICY_DEFAULT);
+    s->timer = ptimer_init(pit_timer_tick, s, PTIMER_POLICY_DEFAULT);
 
     sysbus_init_irq(sbd, &s->irq);
 
@@ -160,7 +165,10 @@ static void pit_device_reset(DeviceState *dev)
 {
     PitState *s = AT91_PIT(dev);
 
+    ptimer_transaction_begin(s->timer);
     ptimer_stop(s->timer);
+    ptimer_transaction_commit(s->timer);
+
     pit_reset_registers(s);
     qemu_set_irq(s->irq, 0);
 }

@@ -11,8 +11,10 @@
 // - Board implementation dependent PSR reset values are assumed to be zero.
 
 #include "at91-pio.h"
-#include "qemu/error-report.h"
 #include "qapi/error.h"
+#include "qemu/error-report.h"
+#include "hw/irq.h"
+#include "hw/qdev-properties.h"
 
 #define IOX_CAT_PINSTATE            0x01
 #define IOX_CID_PINSTATE_ENABLE     0x01

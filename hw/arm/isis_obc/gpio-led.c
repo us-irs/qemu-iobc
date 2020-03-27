@@ -6,6 +6,7 @@
 
 #include "gpio-led.h"
 #include "qemu/error-report.h"
+#include "hw/qdev-properties.h"
 
 
 static void gpio_led_irq_handle(void *opaque, int n, int level)

@@ -4,6 +4,7 @@
 
 #include "at91-rtt.h"
 #include "qemu/error-report.h"
+#include "hw/irq.h"
 
 
 #define AT91_SCLK       0x8000
@@ -33,7 +34,10 @@ static void rtt_update_timer_freq(RttState *s)
 {
     unsigned rtpres = (s->reg_mr & MR_RTPRES) ? (s->reg_mr & MR_RTPRES) : AT91_SCLK;
     unsigned freq = AT91_SCLK / rtpres;
+
+    ptimer_transaction_begin(s->timer);
     ptimer_set_freq(s->timer, freq);
+    ptimer_transaction_commit(s->timer);
 }
 
 static void rtt_timer_tick(void *opaque)
@@ -120,10 +124,8 @@ static void rtt_device_init(Object *obj)
 {
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
     RttState *s = AT91_RTT(obj);
-    QEMUBH *bh;
 
-    bh = qemu_bh_new(rtt_timer_tick, s);
-    s->timer = ptimer_init(bh, PTIMER_POLICY_DEFAULT);
+    s->timer = ptimer_init(rtt_timer_tick, s, PTIMER_POLICY_DEFAULT);
 
     sysbus_init_irq(sbd, &s->irq);
 
@@ -146,15 +148,20 @@ static void rtt_device_realize(DeviceState *dev, Error **errp)
     RttState *s = AT91_RTT(dev);
     rtt_reset_registers(s);
 
+    ptimer_transaction_begin(s->timer);
     ptimer_set_limit(s->timer, 1, 1);
     ptimer_run(s->timer, 0);
+    ptimer_transaction_commit(s->timer);
 }
 
 static void rtt_device_reset(DeviceState *dev)
 {
     RttState *s = AT91_RTT(dev);
 
+    ptimer_transaction_begin(s->timer);
     ptimer_stop(s->timer);
+    ptimer_transaction_commit(s->timer);
+
     rtt_reset_registers(s);
     qemu_set_irq(s->irq, 0);
 }

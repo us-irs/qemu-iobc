@@ -41,7 +41,6 @@
 
 #include "qemu/osdep.h"
 #include "hw/sysbus.h"
-#include "hw/ptimer.h"
 
 #include "at91-pdc.h"
 #include "ioxfer-server.h"

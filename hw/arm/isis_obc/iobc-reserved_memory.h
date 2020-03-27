@@ -10,6 +10,7 @@
 #define HW_ARM_ISIS_OBC_RESERVED_MEM_H
 
 #include "qemu/osdep.h"
+#include "hw/qdev-properties.h"
 #include "hw/sysbus.h"
 
 
