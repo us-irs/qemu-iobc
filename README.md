@@ -10,24 +10,40 @@ See `README.orig.rst` for the original QEMU readme.
 For a general overview of how to build QEMU on Linux and which dependencies are required, see https://wiki.qemu.org/Hosts/Linux#Building_QEMU_for_Linux.
 In the following is a short overview.
 Note that you do not need to fully build QEMU, as we only need ARM system emulation (i.e. all other machines can be skipped).
+Install basic build tools if not already done so
+```sh
+install build-essential cmake
+``` 
+
+Install required libraries
+```sh
+sudo apt-get install git libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev
+```
 
 It is recommended to build QEMU in a separate build directory.
 In the following, we assume that this directory is `./build/` in the source directory.
 If you are building QEMU for the first time, you can create this directory via
-```
+```sh
 mkdir build && cd build
 ```
+
 From that, you then need to configure the QEMU build system.
 For this, it is sufficient to only specify `arm-softmmu` as emulation target.
-```
+```sh
 ../configure --target-list=arm-softmmu
 ```
+
 Finally build QEMU via
-```
-make -j `nproc`
+```sh
+make -j`nproc`
 ```
 Note that you only need to re-run the latest step (i.e. `make` from inside the build directory) when you make changes to the source-code and want to rebuild.
 
+## Setting up QEMU for eclipse
+
+To set up QEMU for eclipse, follow the steps above and make sure this repostiory was cloned in the same directory the OBSW was cloned.
+After that, the shell script inside the OBSW folder should work to start the QEMU emulation for the iOBC.
+To test whether QEMU will run with the script, run the second command from the next section.
 
 ## Running QEMU for ISIS-OBC
 
@@ -36,7 +52,14 @@ From the build directory, run
 ./arm-softmmu/qemu-system-arm -M isis-obc -monitor stdio \
     -bios ./path/to/sourceobsw-at91sam9g20_ek-sdram.bin
 ```
+Make sure the path to the binary is set up correctly.
 Due to the current board configuration, only the `sdram` image is supported.
+The configuration to pipe the serial output to the console directly is:
+```sh
+./arm-softmmu/qemu-system-arm -M isis-obc -serial stdio -monitor none \
+-bios ./path/to/sourceobsw-at91sam9g20_ek-sdram.bin
+```
+To have access to the QMP protocoll, have a look at the sections below.
 
 ### Support for SD-Cards
 
