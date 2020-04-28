@@ -12,7 +12,7 @@ In the following is a short overview.
 Note that you do not need to fully build QEMU, as we only need ARM system emulation (i.e. all other machines can be skipped).
 Install basic build tools if not already done so
 ```sh
-install build-essential cmake
+sudo apt-get install build-essential cmake
 ``` 
 
 Install required libraries
