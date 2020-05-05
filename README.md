@@ -20,17 +20,17 @@ Install required libraries
 sudo apt-get install git libglib2.0-dev libfdt-dev libpixman-1-dev zlib1g-dev
 ```
 
+Update the submodules
+```sh
+git submodule init
+git submodule update
+```
+
 It is recommended to build QEMU in a separate build directory.
 In the following, we assume that this directory is `./build/` in the source directory.
 If you are building QEMU for the first time, you can create this directory via
 ```sh
 mkdir build && cd build
-```
-
-Update the submodules
-```sh
-git submodule init
-git submodule update
 ```
 
 From that, you then need to configure the QEMU build system.
