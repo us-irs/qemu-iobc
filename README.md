@@ -27,6 +27,12 @@ If you are building QEMU for the first time, you can create this directory via
 mkdir build && cd build
 ```
 
+Update the submodules
+```sh
+submodule init
+submodule update
+```
+
 From that, you then need to configure the QEMU build system.
 For this, it is sufficient to only specify `arm-softmmu` as emulation target.
 ```sh
