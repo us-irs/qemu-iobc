@@ -29,8 +29,8 @@ mkdir build && cd build
 
 Update the submodules
 ```sh
-submodule init
-submodule update
+git submodule init
+git submodule update
 ```
 
 From that, you then need to configure the QEMU build system.
