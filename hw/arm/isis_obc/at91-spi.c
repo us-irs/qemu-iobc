@@ -912,7 +912,7 @@ static void spi_class_init(ObjectClass *klass, void *data)
     dc->realize = spi_device_realize;
     dc->unrealize = spi_device_unrealize;
     dc->reset = spi_device_reset;
-    dc->props = spi_device_properties;
+    device_class_set_props(dc, spi_device_properties);
 }
 
 static const TypeInfo spi_device_info = {

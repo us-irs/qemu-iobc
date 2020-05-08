@@ -50,7 +50,7 @@ static void gpio_led_class_init(ObjectClass *klass, void *data)
 
     dc->realize = gpio_led_device_realize;
     dc->reset = gpio_led_device_reset;
-    dc->props = gpio_led_properties;
+    device_class_set_props(dc, gpio_led_properties);
 }
 
 static const TypeInfo gpio_led_device_info = {

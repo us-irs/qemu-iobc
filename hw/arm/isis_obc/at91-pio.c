@@ -464,7 +464,7 @@ static void pio_class_init(ObjectClass *klass, void *data)
     dc->realize = pio_device_realize;
     dc->unrealize = pio_device_unrealize;
     dc->reset = pio_device_reset;
-    dc->props = pio_device_properties;
+    device_class_set_props(dc, pio_device_properties);
 }
 
 static const TypeInfo pio_device_info = {

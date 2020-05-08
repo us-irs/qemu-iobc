@@ -70,7 +70,7 @@ static void reserved_memory_device_class_init(ObjectClass *klass, void *data)
     DeviceClass *dc = DEVICE_CLASS(klass);
 
     dc->realize = reserved_memory_device_realize;
-    dc->props = reserved_memory_device_props;
+    device_class_set_props(dc, reserved_memory_device_props);
 }
 
 static const TypeInfo reserved_memory_device_info = {
