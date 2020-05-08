@@ -747,7 +747,7 @@ static void twi_class_init(ObjectClass *klass, void *data)
     dc->realize = twi_device_realize;
     dc->unrealize = twi_device_unrealize;
     dc->reset = twi_device_reset;
-    dc->props = twi_device_properties;
+    device_class_set_props(dc, twi_device_properties);
 }
 
 static const TypeInfo twi_device_info = {

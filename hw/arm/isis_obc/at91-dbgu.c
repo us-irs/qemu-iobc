@@ -319,7 +319,7 @@ static void dbgu_class_init(ObjectClass *klass, void *data)
 
     dc->realize = dbgu_device_realize;
     dc->reset = dbgu_device_reset;
-    dc->props = dbgu_device_properties;
+    device_class_set_props(dc, dbgu_device_properties);
 }
 
 static const TypeInfo dbgu_device_info = {

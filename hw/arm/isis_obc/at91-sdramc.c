@@ -218,7 +218,7 @@ static void sdramc_class_init(ObjectClass *klass, void *data)
     dc->realize = sdramc_device_realize;
     dc->unrealize = sdramc_device_unrealize;
     dc->reset = sdramc_device_reset;
-    dc->props = sdramc_device_properties;
+    device_class_set_props(dc, sdramc_device_properties);
 }
 
 static const TypeInfo sdramc_device_info = {

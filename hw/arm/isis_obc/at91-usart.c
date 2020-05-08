@@ -921,7 +921,7 @@ static void usart_class_init(ObjectClass *klass, void *data)
     dc->realize = usart_device_realize;
     dc->unrealize = usart_device_unrealize;
     dc->reset = usart_device_reset;
-    dc->props = usart_device_properties;
+    device_class_set_props(dc, usart_device_properties);
 }
 
 static const TypeInfo usart_device_info = {
