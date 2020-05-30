@@ -678,6 +678,7 @@ static uint64_t spi_mmio_read(void *opaque, hwaddr offset, unsigned size)
         {
             uint32_t tmp = s->reg_sr;
             s->reg_sr &= ~(SR_MODF | SR_OVRES | SR_NSSR);
+            update_irq(s);
             return tmp;
         }
 
@@ -747,6 +748,7 @@ static void spi_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned
 
             // currently ignored as NPCS lines are not emulated
         }
+        update_irq(s);
         break;
 
     case SPI_MR:

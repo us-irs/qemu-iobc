@@ -695,6 +695,7 @@ static uint64_t mci_mmio_read(void *opaque, hwaddr offset, unsigned size)
         {
             uint32_t sr = s->reg_sr;
             s->reg_sr &= ~(SR_BLKE | SR_DCRCE | SR_DTOE | SR_SDIOIRQA | SR_SDIOIRQB);
+            mci_irq_update(s);
             return sr;
         }
 

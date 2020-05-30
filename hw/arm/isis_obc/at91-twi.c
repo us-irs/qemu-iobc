@@ -463,6 +463,7 @@ static uint64_t twi_mmio_read(void *opaque, hwaddr offset, unsigned size)
         {
             uint32_t sr = s->reg_sr;
             s->reg_sr &= ~(SR_GACC | SR_OVRE | SR_NACK | SR_ARBLST | SR_EOSACC);
+            twi_update_irq(s);
             return sr;
         }
 
