@@ -1,4 +1,5 @@
 #include "at91-tc.h"
+#include "at91-pmc.h"
 #include "qemu/error-report.h"
 #include "hw/irq.h"
 
@@ -75,6 +76,15 @@
 #define SR_MTIOA        BIT(17)
 #define SR_MTIOB        BIT(18)
 
+#define TCCLKS_TC1      0
+#define TCCLKS_TC2      1
+#define TCCLKS_TC3      2
+#define TCCLKS_TC4      3
+#define TCCLKS_TC5      4
+#define TCCLKS_XC0      5
+#define TCCLKS_XC1      6
+#define TCCLKS_XC2      7
+
 
 static void tc_irq_update(TcChanState *s)
 {
@@ -83,8 +93,50 @@ static void tc_irq_update(TcChanState *s)
 
 static void tc_clk_update(TcChanState *s)
 {
-    // TODO: set clock
-    s->clk = s->parent->mclk;
+    unsigned clock = 0;
+
+    // TODO: XC0, XC1, XC2
+
+    switch (CMR_TCCLKS(s)) {
+    case TCCLKS_TC1:
+        clock = s->parent->mclk / 2;
+        break;
+
+    case TCCLKS_TC2:
+        clock = s->parent->mclk / 8;
+        break;
+
+    case TCCLKS_TC3:
+        clock = s->parent->mclk / 32;
+        break;
+
+    case TCCLKS_TC4:
+        clock = s->parent->mclk / 128;
+        break;
+
+    case TCCLKS_TC5:
+        clock = AT91_PMC_SLCK;
+        break;
+
+    case TCCLKS_XC0:
+        error_report("XC0 clock not implemented");      // TODO
+        abort();
+        break;
+
+    case TCCLKS_XC1:
+        error_report("XC1 clock not implemented");      // TODO
+        abort();
+        break;
+
+    case TCCLKS_XC2:
+        error_report("XC2 clock not implemented");      // TODO
+        abort();
+        break;
+    };
+
+    // note: BURST is not implemented
+
+    s->clk = clock;
 
     if (s->timer && s->clk) {
         ptimer_transaction_begin(s->timer);
@@ -248,6 +300,12 @@ static void tc_chan_mmio_write(TcChanState *s, hwaddr offset, uint64_t value, un
 
     case TC_CMR:
         s->reg_cmr = value;
+
+        if (CMR_BURST(s)) {
+            error_report("at91.tc: TC_CMR:BURST not supported");
+            abort();
+        }
+
         tc_clk_update(s);
         break;
 
