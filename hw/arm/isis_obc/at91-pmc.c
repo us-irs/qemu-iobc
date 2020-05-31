@@ -14,9 +14,6 @@
 #include "hw/irq.h"
 
 
-#define CLOCK_FREQ_SLOW        32768    // slow clock oscillator frequency
-#define CLOCK_FREQ_MAIN     18432000    // main oscillator frequency
-
 #define SR_MOSCS    0x00000001
 #define SR_LOCKA    0x00000002
 #define SR_LOCKB    0x00000004
@@ -87,21 +84,21 @@ static void pmc_update_mckr(PmcState *s)
     if (ready) {
         switch (css) {
         case 0:     // slow clock
-            freq = CLOCK_FREQ_SLOW;
+            freq = AT91_PMC_SLCK;
             break;
 
         case 1:     // main clock
-            freq = CLOCK_FREQ_MAIN;
+            freq = AT91_PMC_MCK;
             break;
 
         case 2:     // PLLA clock
-            freq = CLOCK_FREQ_MAIN;
+            freq = AT91_PMC_MCK;
             freq /= s->reg_ckgr_plla & 0xff;
             freq *= ((s->reg_ckgr_plla >> 16) & 0xff) + 1;
             break;
 
         case 3:     // PLLB clock
-            freq = CLOCK_FREQ_MAIN;
+            freq = AT91_PMC_MCK;
             freq /= s->reg_ckgr_pllb & 0xff;
             freq *= ((s->reg_ckgr_pllb >> 16) & 0x3f) + 1;
             break;
@@ -192,7 +189,7 @@ static void pmc_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned
     case CKGR_MOR:
         s->reg_ckgr_mor = value;
         s->reg_pmc_sr = (s->reg_pmc_sr & ~0x00000001) | (value & 0x00000001);
-        s->reg_ckgr_mcfr = (value & 1) ? (1 << 16) | (CLOCK_FREQ_MAIN / CLOCK_FREQ_SLOW / 16) : 0;
+        s->reg_ckgr_mcfr = (value & 1) ? (1 << 16) | (AT91_PMC_MCK / AT91_PMC_SLCK / 16) : 0;
         break;
 
     case CKGR_PLLAR:

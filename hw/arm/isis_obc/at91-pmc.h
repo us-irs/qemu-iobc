@@ -17,6 +17,9 @@
 #include "hw/sysbus.h"
 
 
+#define AT91_PMC_SLCK          32768    // slow clock oscillator frequency
+#define AT91_PMC_MCK        18432000    // main oscillator frequency
+
 #define TYPE_AT91_PMC "at91-pmc"
 #define AT91_PMC(obj) OBJECT_CHECK(PmcState, (obj), TYPE_AT91_PMC)
 
