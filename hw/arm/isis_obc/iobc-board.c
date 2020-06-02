@@ -32,6 +32,7 @@
 #include "at91-spi.h"
 #include "at91-sdramc.h"
 #include "at91-mci.h"
+#include "at91-tc.h"
 
 
 #define SOCKET_TWI      "/tmp/qemu_at91_twi"
@@ -88,6 +89,8 @@ typedef struct {
     DeviceState *dev_twi;
     DeviceState *dev_sdramc;
     DeviceState *dev_mci;
+    DeviceState *dev_tc012;
+    DeviceState *dev_tc345;
 
     qemu_irq irq_aic[32];
     qemu_irq irq_sysc[32];
@@ -123,6 +126,8 @@ static void iobc_mkclk_changed(void *opaque, unsigned clock)
     at91_spi_set_master_clock(AT91_SPI(s->dev_spi0), clock);
     at91_spi_set_master_clock(AT91_SPI(s->dev_spi1), clock);
     at91_mci_set_master_clock(AT91_MCI(s->dev_mci), clock);
+    at91_tc_set_master_clock(AT91_TC(s->dev_tc012), clock);
+    at91_tc_set_master_clock(AT91_TC(s->dev_tc345), clock);
 }
 
 static void iobc_init(MachineState *machine)
@@ -344,6 +349,22 @@ static void iobc_init(MachineState *machine)
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_mci), 0, s->irq_aic[9]);
     qdev_connect_gpio_out_named(s->dev_pio_b, "pin.out", 7, qdev_get_gpio_in_named(s->dev_mci, "select", 0));
 
+    // TC0, TC1, TC2
+    s->dev_tc012 = qdev_create(NULL, TYPE_AT91_TC);
+    qdev_init_nofail(s->dev_tc012);
+    sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_tc012), 0, 0xFFFA0000);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_tc012), 0, s->irq_aic[17]);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_tc012), 1, s->irq_aic[18]);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_tc012), 2, s->irq_aic[19]);
+
+    // TC3, TC4, TC5
+    s->dev_tc345 = qdev_create(NULL, TYPE_AT91_TC);
+    qdev_init_nofail(s->dev_tc345);
+    sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_tc345), 0, 0xFFFDC000);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_tc345), 0, s->irq_aic[26]);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_tc345), 1, s->irq_aic[27]);
+    sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_tc345), 2, s->irq_aic[28]);
+
     // other peripherals
     s->dev_rstc   = sysbus_create_simple(TYPE_AT91_RSTC,   0xFFFFFD00, s->irq_sysc[3]);
     s->dev_rtt    = sysbus_create_simple(TYPE_AT91_RTT,    0xFFFFFD20, s->irq_sysc[4]);
@@ -359,12 +380,10 @@ static void iobc_init(MachineState *machine)
     create_unimplemented_device("iobc.ebi.cs6",        0x70000000, 0x10000000);
     create_unimplemented_device("iobc.ebi.cs7",        0x80000000, 0x10000000);
 
-    create_unimplemented_device("iobc.periph.tc012",   0xFFFA0000, 0x4000);
     create_unimplemented_device("iobc.periph.udp",     0xFFFA4000, 0x4000);
     create_unimplemented_device("iobc.periph.ssc",     0xFFFBC000, 0x4000);
     create_unimplemented_device("iobc.periph.isi",     0xFFFC0000, 0x4000);
     create_unimplemented_device("iobc.periph.emac",    0xFFFC4000, 0x4000);
-    create_unimplemented_device("iobc.periph.tc345",   0xFFFDC000, 0x4000);
     create_unimplemented_device("iobc.periph.adc",     0xFFFE0000, 0x4000);
 
     create_unimplemented_device("iobc.periph.ecc",     0xFFFFE800, 0x200);

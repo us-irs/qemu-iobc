@@ -39,6 +39,7 @@
 #define ST_ACTIVE_FALLING   0x01
 #define ST_ACTIVE_HIGH      0x02
 #define ST_ACTIVE_RISING    0x03
+#define ST_EDGE_MASK        0x01
 
 #define IRQ_PRIO_LOWEST     0
 #define IRQ_PRIO_HIGHEST    7
@@ -66,14 +67,14 @@ inline static uint8_t aic_irq_get_type(AicState *s, uint8_t irq)
     return srctype;
 }
 
-inline static bool aic_irq_is_level_triggered(AicState *s, uint8_t irq)
-{
-    return !!(aic_irq_get_type(s, irq) & (ST_ACTIVE_LOW | ST_ACTIVE_HIGH));
-}
-
 inline static bool aic_irq_is_edge_triggered(AicState *s, uint8_t irq)
 {
-    return !!(aic_irq_get_type(s, irq) & (ST_ACTIVE_RISING | ST_ACTIVE_FALLING));
+    return aic_irq_get_type(s, irq) & ST_EDGE_MASK;
+}
+
+inline static bool aic_irq_is_level_triggered(AicState *s, uint8_t irq)
+{
+    return !aic_irq_is_edge_triggered(s, irq);
 }
 
 inline static bool aic_irq_is_fast(AicState *s, uint8_t irq)
