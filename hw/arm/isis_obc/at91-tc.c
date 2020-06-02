@@ -1,3 +1,13 @@
+/*
+ * AT91 Timer/Counter.
+ */
+
+// Overview of TODOs:
+// - Burst mode, clock chaining (XP0, XP1, XP2 clock signals)
+// - Digital signal outputs
+// - Digital signal inputs, edge detector, ...
+
+
 #include "at91-tc.h"
 #include "at91-pmc.h"
 #include "qemu/error-report.h"
