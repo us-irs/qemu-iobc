@@ -339,7 +339,7 @@ static void tc_chan_mmio_write(TcChanState *s, hwaddr offset, uint64_t value, un
 
     case TC_RC:
         if (value > 0xffff) {
-            error_report("at91.tc: write to TC_RC with value 0x%x > 0xffff, truncating", value);
+            error_report("at91.tc: write to TC_RC with value 0x%lx > 0xffff, truncating", value);
         }
         s->reg_rc = value & 0xffff;
         break;
