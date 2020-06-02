@@ -28,9 +28,9 @@
 
 #define BCR_SYNC        BIT(0)
 
-#define BMR_TC0XC0S     0x03
-#define BMR_TC1XC1S     0x0C
-#define BMR_TC2XC2S     0x30
+#define BMR_TC0XC0S(s)  (s->reg_bmr & 0x03)
+#define BMR_TC1XC1S(s)  ((s->reg_bmr >> 2) & 0x03)
+#define BMR_TC2XC2S(s)  ((s->reg_bmr >> 4) & 0x03)
 
 #define CCR_CLKEN       BIT(0)
 #define CCR_CLKDIS      BIT(1)
