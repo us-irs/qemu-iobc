@@ -1,3 +1,9 @@
+/*
+ * AT91 Timer/Counter.
+ *
+ * See at91-tc.c for implementation status.
+ */
+
 #ifndef HW_ARM_ISIS_OBC_TC_H
 #define HW_ARM_ISIS_OBC_TC_H
 
