@@ -264,10 +264,32 @@ static void pmc_reset_registers(PmcState *s)
     s->reg_pmc_pllicpr = 0x00;
 }
 
+static void pmc_reset_registers_from_init_state(PmcState *s)
+{
+    pmc_reset_registers(s);
+
+    if (!s->init_state)
+        return;
+
+    s->reg_ckgr_mor  = s->init_state->reg_ckgr_mor;
+    s->reg_pmc_sr = (s->reg_pmc_sr & ~0x00000001) | (s->init_state->reg_ckgr_mor & 0x00000001);
+    s->reg_ckgr_mcfr = (s->init_state->reg_ckgr_mor & 1) ? (1 << 16)
+                       | (AT91_PMC_MCK / AT91_PMC_SLCK / 16) : 0;
+
+    s->reg_ckgr_plla = s->init_state->reg_ckgr_plla;
+    s->reg_pmc_sr |= SR_LOCKA;
+
+    s->reg_ckgr_pllb = s->init_state->reg_ckgr_pllb;
+    s->reg_pmc_sr |= SR_LOCKB;
+
+    s->reg_pmc_mckr  = s->init_state->reg_pmc_mckr;
+}
+
 static void pmc_device_realize(DeviceState *dev, Error **errp)
 {
     PmcState *s = AT91_PMC(dev);
-    pmc_reset_registers(s);
+
+    pmc_reset_registers_from_init_state(s);
     s->master_clock_freq = 0;
 
     pmc_update_mckr(s);
@@ -276,7 +298,8 @@ static void pmc_device_realize(DeviceState *dev, Error **errp)
 static void pmc_device_reset(DeviceState *dev)
 {
     PmcState *s = AT91_PMC(dev);
-    pmc_reset_registers(s);
+
+    pmc_reset_registers_from_init_state(s);
     s->master_clock_freq = 0;
 
     pmc_update_mckr(s);

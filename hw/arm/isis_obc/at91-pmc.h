@@ -27,10 +27,19 @@
 typedef void(at91_mclk_cb)(void *opaque, unsigned value);
 
 typedef struct {
+    uint32_t reg_ckgr_mor;
+    uint32_t reg_ckgr_plla;
+    uint32_t reg_ckgr_pllb;
+    uint32_t reg_pmc_mckr;
+} PmcInitState;
+
+typedef struct {
     SysBusDevice parent_obj;
 
     MemoryRegion mmio;
     qemu_irq irq;
+
+    const PmcInitState *init_state;
 
     // registers
     uint32_t reg_pmc_scsr;
@@ -62,6 +71,11 @@ inline static void at91_pmc_set_mclk_change_callback(PmcState *s, void *opaque, 
 {
     s->mclk_cb = cb;
     s->mclk_opaque = opaque;
+}
+
+inline static void at91_pmc_set_init_state(PmcState *s, const PmcInitState *init)
+{
+    s->init_state = init;
 }
 
 #endif /* HW_ARM_ISIS_OBC_PWC_H */
