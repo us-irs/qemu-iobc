@@ -365,8 +365,6 @@ static uint64_t tc_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
     TcState *s = opaque;
 
-    error_report("at91.tc: read access at 0x%02lx", offset);
-
     switch (offset) {
     case TCC0_START ... TCC0_END:
         return tc_chan_mmio_read(&s->chan[0], offset, size);
