@@ -49,11 +49,21 @@
 #define SOCKET_PIOC     "/tmp/qemu_at91_pioc"
 #define SOCKET_SDRAMC   "/tmp/qemu_at91_sdramc"
 
+#define ADDR_BOOTMEM    0x00000000
+#define ADDR_SDRAMC     0x20000000
 
-static struct arm_boot_info iobc_board_binfo = {
-    .loader_start     = 0x00000000,
+
+static struct arm_boot_info iobc_board_binfo_sdram = {
+    .loader_start     = ADDR_SDRAMC,
     .ram_size         = 0x10000000,
     .nb_cpus          = 1,
+};
+
+static const PmcInitState pmc_init_state_sdram = {
+    .reg_ckgr_mor     = 0x00004001,
+    .reg_ckgr_plla    = 0x202a3f01,
+    .reg_ckgr_pllb    = 0x10193f05,
+    .reg_pmc_mckr     = 0x00001302,
 };
 
 
@@ -393,22 +403,23 @@ static void iobc_init(MachineState *machine)
     create_unimplemented_device("iobc.periph.wdt",     0xFFFFFD40, 0x10);
     create_unimplemented_device("iobc.periph.gpbr",    0xFFFFFD50, 0x10);
 
-    // load firmware
+    /*
+     * Load firmware directly to SDRAMC.
+     *
+     * Note: This is the "debug" way, i.e. load to SDRAMC and jump to SDRAMC start address.
+     *       This bypasses the bootloader and configures the clock for OBSW, which in debug
+     *       loading on real hardware is done via jlink.
+     */
     if (bios_name) {
         firmware_path = qemu_find_file(QEMU_FILE_TYPE_BIOS, bios_name);
 
         if (firmware_path) {
-            // load into nor flash (default program store)
-            if (load_image_mr(firmware_path, &s->mem_pflash) < 0) {
-                error_report("Unable to load %s into pflash", bios_name);
-                exit(1);
-            }
-
-            // nor flash gets copied to sdram at boot, thus we load it directly
             if (load_image_mr(firmware_path, &s->mem_sdram) < 0) {
                 error_report("Unable to load %s into sdram", bios_name);
                 exit(1);
             }
+
+            at91_pmc_set_init_state(AT91_PMC(s->dev_pmc), &pmc_init_state_sdram);
 
             g_free(firmware_path);
         } else {
@@ -419,7 +430,7 @@ static void iobc_init(MachineState *machine)
         warn_report("No firmware specified: Use -bios <file> to load firmware");
     }
 
-    arm_load_kernel(s->cpu, machine, &iobc_board_binfo);
+    arm_load_kernel(s->cpu, machine, &iobc_board_binfo_sdram);
 }
 
 static void iobc_machine_init(MachineClass *mc)
