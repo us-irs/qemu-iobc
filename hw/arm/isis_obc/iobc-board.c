@@ -53,17 +53,33 @@
 #define ADDR_SDRAMC     0x20000000
 
 
-static struct arm_boot_info iobc_board_binfo_sdram = {
-    .loader_start     = ADDR_SDRAMC,
-    .ram_size         = 0x10000000,
-    .nb_cpus          = 1,
-};
+#define IOBC_LOADER_NONE    0
+#define IOBC_LOADER_DBG     1
+
+#define IOBC_LOADER         IOBC_LOADER_NONE
+
+
+#if IOBC_LOADER == IOBC_LOADER_DBG
+
+#define IOBC_START_ADDRESS  ADDR_SDRAMC
 
 static const PmcInitState pmc_init_state_sdram = {
     .reg_ckgr_mor     = 0x00004001,
     .reg_ckgr_plla    = 0x202a3f01,
     .reg_ckgr_pllb    = 0x10193f05,
     .reg_pmc_mckr     = 0x00001302,
+};
+
+#else /* IOBC_LOADER */
+
+#define IOBC_START_ADDRESS  ADDR_BOOTMEM
+
+#endif /* IOBC_LOADER */
+
+static struct arm_boot_info iobc_board_binfo = {
+    .loader_start     = IOBC_START_ADDRESS,
+    .ram_size         = 0x10000000,
+    .nb_cpus          = 1,
 };
 
 
@@ -144,7 +160,6 @@ static void iobc_init(MachineState *machine)
 {
     MemoryRegion *address_space_mem = get_system_memory();
     IobcBoardState *s = g_new(IobcBoardState, 1);
-    char *firmware_path;
     int i;
 
     s->cpu = ARM_CPU(cpu_create(machine->cpu_type));
@@ -403,6 +418,9 @@ static void iobc_init(MachineState *machine)
     create_unimplemented_device("iobc.periph.wdt",     0xFFFFFD40, 0x10);
     create_unimplemented_device("iobc.periph.gpbr",    0xFFFFFD50, 0x10);
 
+#if IOBC_LOADER == IOBC_LOADER_DBG
+    char *firmware_path;
+
     /*
      * Load firmware directly to SDRAMC.
      *
@@ -429,8 +447,9 @@ static void iobc_init(MachineState *machine)
     } else {
         warn_report("No firmware specified: Use -bios <file> to load firmware");
     }
+#endif
 
-    arm_load_kernel(s->cpu, machine, &iobc_board_binfo_sdram);
+    arm_load_kernel(s->cpu, machine, &iobc_board_binfo);
 }
 
 static void iobc_machine_init(MachineClass *mc)
