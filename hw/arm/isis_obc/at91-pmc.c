@@ -299,9 +299,13 @@ static void pmc_device_reset(DeviceState *dev)
 {
     PmcState *s = AT91_PMC(dev);
 
-    pmc_reset_registers_from_init_state(s);
-    s->master_clock_freq = 0;
+    /**
+     * Note: Do not set clock on reset. This prevents the clock from being set
+     * externally at boot via the device loader options.
+     */
+    // pmc_reset_registers_from_init_state(s);
 
+    s->master_clock_freq = 0;
     pmc_update_mckr(s);
 }
 
