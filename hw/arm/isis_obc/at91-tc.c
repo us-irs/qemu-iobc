@@ -388,7 +388,8 @@ static void tc_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned 
 {
     TcState *s = opaque;
 
-    error_report("at91.tc: write access at 0x%02lx (value: 0x%02lx)", offset, value);
+    // debug output
+    // error_report("at91.tc: write access at 0x%02lx (value: 0x%02lx)", offset, value);
 
     switch (offset) {
     case TCC0_START ... TCC0_END:
