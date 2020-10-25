@@ -29,7 +29,7 @@ Arguments:
 
 Environment Variables
     IOBC_QEMU_EXEC  Override QEMU executable/binary
-                    [default $(dirname "${0}")/build/arm-softmmu/qemu-system-arm]
+                    [default: $(dirname "${0}")/build/arm-softmmu/qemu-system-arm]
 
 Supported Profiles:
     sdram           Debug configuration for SDRAM
