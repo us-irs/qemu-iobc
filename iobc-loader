@@ -1,0 +1,281 @@
+#!/bin/bash
+# QEMU loader script for IOBC/AT91.
+
+set -u              # abort on undefined variables
+
+
+# -- Command Line Interface Definitions ----------------------------------------
+
+scriptname="iobc-loader"
+
+# help text
+read -r -d '' cli_help <<EOD
+QEMU image loader for IOBC/AT91.
+
+Usage:
+    ${scriptname} [FLAGS] [OPTIONS] [-- <QEMU_ARGS...>]
+
+Flags:
+    -h, --help      Print this help message
+    -v, --verbose   Enable verbose output
+
+Options:
+    -f, --load <ADDRESS> <FILE>         Load file to memory starting at address
+    -o, --register-override <OVERRIDE>  Set/override registers before starting
+    -s, --program-counter <ADDRESS>     Set initial program counter
+
+Arguments:
+    QEMU_ARGS...    Arguments forwarded to QEMU executable
+
+Environment Variables
+    IOBC_QEMU_EXEC  QEMU executable/binary
+
+Supported Profiles:
+    sdram           Debug configuration for SDRAM
+
+Supported Mnemonic Memory Regions/Addresses:
+    bootmem         0x00000000
+    rom             0x00100000
+    sram0           0x00200000
+    sram1           0x00300000
+    norflash        0x10000000
+    sdram           0x20000000
+
+Supported Register Overrides:
+    pmc-mclk        Override PMC master clock for debug-boot
+
+Examples:
+    ${scriptname} <exec> --load sdram <file> --program-counter sdram --register-override pmc-mclk
+    ${scriptname} <exec> -f <address> <file> -f <address2> <file2> -s <address> -o <override> -o <override>
+EOD
+
+
+# -- QEMU IOBC Definitions -----------------------------------------------------
+
+iobc_board="isis-obc"
+
+declare -A iobc_mem_addr=(
+    ["bootmem"]=$((   0x00000000 ))
+    ["rom"]=$((       0x00100000 ))
+    ["sram0"]=$((     0x00200000 ))
+    ["sram1"]=$((     0x00300000 ))
+    ["norflash"]=$((  0x10000000 ))
+    ["sdram"]=$((     0x20000000 ))
+)
+
+declare -A iobc_reg_addr=(
+    ["PMC_MOR"]=$((  0xfffffc00 + 0x20 ))
+    ["PMC_PLLA"]=$(( 0xfffffc00 + 0x28 ))
+    ["PMC_PLLB"]=$(( 0xfffffc00 + 0x2c ))
+    ["PMC_MCKR"]=$(( 0xfffffc00 + 0x30 ))
+)
+
+declare -A iobc_reg_override_pmc_mclk=(
+    ["PMC_MOR"]=$((  0x00004001 ))
+    ["PMC_PLLA"]=$(( 0x202a3f01 ))
+    ["PMC_PLLB"]=$(( 0x10193f05 ))
+    ["PMC_MCKR"]=$(( 0x00001302 ))
+)
+
+declare -A iobc_reg_overrides=(
+    ["pmc-mclk"]="iobc_reg_override_pmc_mclk"
+)
+
+
+# -- Helper Functions ----------------------------------------------------------
+
+# check if ${1} is an integer
+function is_integer() {
+    printf "%x" "${1}" > /dev/null 2>&1
+    return $?
+}
+
+# try to convert ${1} to a valid memory address
+function iobc_mem_addr_to_integer() {
+    addr="${1}"
+
+    if [ ${iobc_mem_addr["${addr}"]+x} ]
+    then
+        echo "${iobc_mem_addr["${addr}"]}"
+        return 0
+
+    elif is_integer "${addr}"
+    then
+        echo "${addr}"
+        return 0
+
+    else
+        return 1
+    fi
+}
+
+
+# -- Command Line Parser -------------------------------------------------------
+
+arg_positionals=()
+arg_help=n
+arg_verbose=n
+arg_program_counter=
+arg_load_addrs=()
+arg_load_files=()
+arg_overrides=()
+arg_qemu_args=()
+
+while (( "${#}" ))
+do
+    case "${1}" in
+        -h|--help)
+            arg_help=y
+            shift
+            ;;
+        -v|--verbose)
+            arg_verbose=y
+            shift
+            ;;
+        -f|--load)
+            if [ "${#}" -ge 3 ]
+            then
+                arg_load_addrs+=("${2}")
+                arg_load_files+=("${3}")
+            else
+                echo "error: Missing argument for ${1}"
+                exit 1
+            fi
+            shift 3
+            ;;
+        -o|--register-override)
+            if [ "${#}" -ge 2 ]
+            then
+                arg_overrides+=("${2}")
+            else
+                echo "error: Missing argument for ${1}"
+                exit 1
+            fi
+            shift 2
+            ;;
+        -s|--program-counter)
+            if [ "${#}" -ge 2 ]
+            then
+                arg_program_counter="${2}"
+            else
+                echo "error: Missing argument for ${1}"
+                exit 1
+            fi
+            shift 2
+            ;;
+        --)
+            shift 1
+            while (( "${#}" ))
+            do
+                arg_qemu_args=("${arg_qemu_args[@]}" "${1}")
+                shift
+            done
+            ;;
+        *)
+            arg_positionals+=("${1}")
+            shift
+            ;;
+    esac
+done
+
+# handle help
+if [ ${arg_help} = y ]
+then
+    echo "${cli_help}"
+    exit 0
+fi
+
+# there are currently no positional arguments
+for arg in "${arg_positionals[@]}"
+do
+    echo "error: Invalid argument '${arg}'"
+    exit 1
+done
+
+# get qemu executable
+default_qemu_exec="$(dirname "${0}")/build/arm-softmmu/qemu-system-arm"
+arg_qemu_exec="${IOBC_QEMU_EXEC:-"${default_qemu_exec}"}"
+
+
+# -- Main Logic ----------------------------------------------------------------
+
+declare -a devices=()
+
+# loaders for program memory and binary files
+for i in "${!arg_load_files[@]}"
+do
+    file=${arg_load_files[$i]}
+    memr=${arg_load_addrs[$i]}
+
+    if ! addr=$(iobc_mem_addr_to_integer "${memr}")
+    then
+        echo "error: Invalid memory address for program memory."
+        echo "       Expected integer or region, got '${memr}'."
+        exit 1
+    fi
+
+    dev="loader"
+    dev="${dev},file=${file}"
+    dev=$(printf "${dev},addr=0x%08x" "${addr}")
+    dev="${dev},force-raw=on"
+
+    devices=("${devices[@]}" "${dev}")
+
+    [ ${arg_verbose} = y ] && printf "info: loading ${file} to 0x%08x\n" "${addr}"
+done
+
+# loaders for register overrides
+for override in "${arg_overrides[@]}"
+do
+    override_ptr="${iobc_reg_overrides[${override}]}"
+
+    while IFS= read -r reg
+    do
+        addr="${iobc_reg_addr[${reg}]}"
+        data=$(eval echo "\${${override_ptr}[${reg}]}")
+
+        dev="loader"
+        dev=$(printf "${dev},addr=0x%08x" "${addr}")
+        dev=$(printf "${dev},data=0x%08x" "${data}")
+        dev="${dev},data-len=4"
+
+        devices=("${devices[@]}" "${dev}")
+
+        [ ${arg_verbose} = y ] && printf "info: setting *0x%08x to 0x%08x\n" "${addr}" "${data}"
+    done <<< "$(eval printf "%s\\\n" "\"\${!${override_ptr}[@]}\"")"
+done
+
+# loader for program counter
+if [ -n "${arg_program_counter}" ]
+then
+    if ! pc=$(iobc_mem_addr_to_integer "${arg_program_counter}")
+    then
+        echo "error: Invalid memory address for program counter."
+        echo "       Expected integer or region, got '${arg_program_counter}'."
+        exit 1
+    fi
+
+    if [ "${pc}" -eq 0 ]
+    then
+        pc=2
+    fi
+
+    dev=$(printf "loader,addr=0x%08x,cpu-num=0" "${pc}")
+    devices=("${devices[@]}" "${dev}")
+
+    [ ${arg_verbose} = y ] && printf "info: setting program counter to 0x%08x\n" "${pc}"
+fi
+
+# build QEMU arguments
+declare -a args=()
+args=("${args[@]}" -M "${iobc_board}")
+
+for dev in "${devices[@]}"
+do
+    args=("${args[@]}" -device "${dev}")
+done
+
+# execute
+[ ${arg_verbose} = y ] && echo "info: executing: ${arg_qemu_exec} ${args[*]} ${arg_qemu_args[*]}"
+[ ${arg_verbose} = y ] && echo ""
+${arg_qemu_exec} "${args[@]}" "${arg_qemu_args[@]}"
