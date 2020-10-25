@@ -227,6 +227,12 @@ done
 # loaders for register overrides
 for override in "${arg_overrides[@]}"
 do
+    if ! [ ${iobc_reg_override_pmc_mclk[${override}]+x} ]
+    then
+        echo "error: Invalid register override '${override}'"
+        exit 1
+    fi
+
     override_ptr="${iobc_reg_overrides[${override}]}"
 
     while IFS= read -r reg
