@@ -12,7 +12,7 @@
 #include "qemu/osdep.h"
 #include "hw/sysbus.h"
 
-#define AT91_BMS_INIT   0
+#define AT91_BMS_INIT   0           // 0/false = EBI_NCS=, 1/true = ROM
 
 #define TYPE_AT91_MATRIX "at91-matrix"
 #define AT91_MATRIX(obj) OBJECT_CHECK(MatrixState, (obj), TYPE_AT91_MATRIX)
