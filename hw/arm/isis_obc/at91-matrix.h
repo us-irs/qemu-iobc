@@ -12,6 +12,7 @@
 #include "qemu/osdep.h"
 #include "hw/sysbus.h"
 
+#define AT91_BMS_INIT   0
 
 #define TYPE_AT91_MATRIX "at91-matrix"
 #define AT91_MATRIX(obj) OBJECT_CHECK(MatrixState, (obj), TYPE_AT91_MATRIX)
@@ -32,6 +33,7 @@ typedef struct {
     MemoryRegion mmio;
 
     uint32_t reg_mrcr;
+    bool bms;
 
     at91_bootmem_remap_cb *bootmem_cb;
     void *bootmem_opaque;

@@ -98,6 +98,7 @@ static void matrix_device_init(Object *obj)
 static void matrix_device_realize(DeviceState *dev, Error **errp)
 {
     MatrixState *s = AT91_MATRIX(dev);
+    s->bms = AT91_BMS_INIT;
     s->reg_mrcr = 0;
 }
 
