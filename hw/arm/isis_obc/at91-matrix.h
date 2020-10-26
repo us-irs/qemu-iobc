@@ -17,9 +17,9 @@
 #define AT91_MATRIX(obj) OBJECT_CHECK(MatrixState, (obj), TYPE_AT91_MATRIX)
 
 typedef enum {
-    AT91_BOOTMEM_ROM,
-    AT91_BOOTMEM_SRAM,
-    AT91_BOOTMEM_SDRAM,
+    AT91_BOOTMEM_ROM,               // 0x0010 0000
+    AT91_BOOTMEM_SRAM0,             // 0x0020 0000
+    AT91_BOOTMEM_EBI_NCS0,          // 0x1000 0000
     __AT91_BOOTMEM_NUM_REGIONS,
 } at91_bootmem_region;
 
