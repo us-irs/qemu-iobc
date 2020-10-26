@@ -37,6 +37,7 @@ static void rtt_update_timer_freq(RttState *s)
 
     ptimer_transaction_begin(s->timer);
     ptimer_set_freq(s->timer, freq);
+    ptimer_run(s->timer, 0);
     ptimer_transaction_commit(s->timer);
 }
 
@@ -157,10 +158,6 @@ static void rtt_device_realize(DeviceState *dev, Error **errp)
 static void rtt_device_reset(DeviceState *dev)
 {
     RttState *s = AT91_RTT(dev);
-
-    ptimer_transaction_begin(s->timer);
-    ptimer_stop(s->timer);
-    ptimer_transaction_commit(s->timer);
 
     rtt_reset_registers(s);
     qemu_set_irq(s->irq, 0);
