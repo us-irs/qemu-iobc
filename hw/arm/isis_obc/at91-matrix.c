@@ -24,6 +24,32 @@ inline static void matrix_bootmem_remap(MatrixState *s, at91_bootmem_region targ
         s->bootmem_cb(s->bootmem_opaque, target);
 }
 
+inline static void matrix_bootmem_update(MatrixState *s)
+{
+    // RCB0: Remap Command Bit for AHB Master 0 (ARM926 Instruction)
+    // RCB1: Remap Command Bit for AHB Master 1 (ARM926 Data)
+
+    if ((s->reg_mrcr & MRCR_RCB0) && (s->reg_mrcr & MRCR_RCB1)) {           // REMAP = 1
+        matrix_bootmem_remap(s, AT91_BOOTMEM_SRAM0);
+
+    } else if (!(s->reg_mrcr & MRCR_RCB0) && !(s->reg_mrcr & MRCR_RCB1)) {  // REMAP = 0
+        if (s->bms) {                                                       // BMS = 1
+            matrix_bootmem_remap(s, AT91_BOOTMEM_ROM);
+        } else {                                                            // BMS = 0
+            matrix_bootmem_remap(s, AT91_BOOTMEM_EBI_NCS0);
+        }
+
+    } else {
+        /*
+         * QEMU doesn't allow us to remap data indpeendently from
+         * instructions. For QEMU, both are the same. So we can only make
+         * this a hard error to catch it in case this happens...
+         */
+        error_report("at91.matrix: cannot set REMAP independently for Data and Instruction");
+        abort();
+    }
+}
+
 
 static uint64_t matrix_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
@@ -53,29 +79,7 @@ static void matrix_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsig
     switch (offset) {
     case MATRIX_MRCR:
         s->reg_mrcr = value;
-
-        // RCB0: Remap Command Bit for AHB Master 0 (ARM926 Instruction)
-        // RCB1: Remap Command Bit for AHB Master 1 (ARM926 Data)
-
-        if ((value & MRCR_RCB0) && (value & MRCR_RCB1)) {           // REMAP = 1
-            matrix_bootmem_remap(s, AT91_BOOTMEM_SRAM0);
-
-        } else if (!(value & MRCR_RCB0) && !(value & MRCR_RCB1)) {  // REMAP = 0
-            if (s->bms) {                                           // BMS = 1
-                matrix_bootmem_remap(s, AT91_BOOTMEM_ROM);
-            } else {                                                // BMS = 0
-                matrix_bootmem_remap(s, AT91_BOOTMEM_EBI_NCS0);
-            }
-
-        } else {
-            /*
-             * QEMU doesn't allow us to remap data indpeendently from
-             * instructions. For QEMU, both are the same. So we can only make
-             * this a hard error to catch it in case this happens...
-             */
-            error_report("at91.matrix: cannot set REMAP independently for Data and Instruction");
-            abort();
-        }
+        matrix_bootmem_update(s);
         break;
 
     // TODO
@@ -109,6 +113,7 @@ static void matrix_device_init(Object *obj)
 static void matrix_device_realize(DeviceState *dev, Error **errp)
 {
     MatrixState *s = AT91_MATRIX(dev);
+
     s->bms = AT91_BMS_INIT;
     s->reg_mrcr = 0;
 }
@@ -116,7 +121,9 @@ static void matrix_device_realize(DeviceState *dev, Error **errp)
 static void matrix_device_reset(DeviceState *dev)
 {
     MatrixState *s = AT91_MATRIX(dev);
+
     s->reg_mrcr = 0;
+    matrix_bootmem_update(s);
 }
 
 static void matrix_class_init(ObjectClass *klass, void *data)
