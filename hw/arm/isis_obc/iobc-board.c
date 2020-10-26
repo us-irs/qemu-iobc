@@ -129,6 +129,14 @@ static void iobc_bootmem_remap(void *opaque, at91_bootmem_region target)
 {
     IobcBoardState *s = opaque;
 
+    static const char *memnames[] = {
+        [AT91_BOOTMEM_ROM]      = "ROM",
+        [AT91_BOOTMEM_SRAM0]    = "SRAM0",
+        [AT91_BOOTMEM_EBI_NCS0] = "EBI_NCS0",
+    };
+
+    info_report("at91: remapping bootmem to %s", memnames[target]);
+
     memory_region_transaction_begin();
     memory_region_set_enabled(&s->mem_boot[s->mem_boot_target], false);
     memory_region_set_enabled(&s->mem_boot[target], true);
