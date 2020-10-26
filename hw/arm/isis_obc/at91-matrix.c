@@ -57,12 +57,15 @@ static void matrix_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsig
         // RCB0: Remap Command Bit for AHB Master 0 (ARM926 Instruction)
         // RCB1: Remap Command Bit for AHB Master 1 (ARM926 Data)
 
-        if ((value & MRCR_RCB0) && (value & MRCR_RCB1)) {
+        if ((value & MRCR_RCB0) && (value & MRCR_RCB1)) {           // REMAP = 1
             matrix_bootmem_remap(s, AT91_BOOTMEM_SRAM0);
 
-        } else if (!(value & MRCR_RCB0) && !(value & MRCR_RCB1)) {
-            // TODO: switch between rom and EBI_NCS0 (SDRAM) based on BMS
-            matrix_bootmem_remap(s, AT91_BOOTMEM_EBI_NCS0);
+        } else if (!(value & MRCR_RCB0) && !(value & MRCR_RCB1)) {  // REMAP = 0
+            if (s->bms) {                                           // BMS = 1
+                matrix_bootmem_remap(s, AT91_BOOTMEM_ROM);
+            } else {                                                // BMS = 0
+                matrix_bootmem_remap(s, AT91_BOOTMEM_EBI_NCS0);
+            }
 
         } else {
             /*
