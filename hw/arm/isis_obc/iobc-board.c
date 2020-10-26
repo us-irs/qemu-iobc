@@ -215,9 +215,9 @@ static void iobc_init(MachineState *machine)
     memory_region_init_ram(&s->mem_sdram,  NULL, "iobc.sdram",  0x10000000, &error_fatal);
 
     // bootmem aliases
-    memory_region_init_alias(&s->mem_boot[AT91_BOOTMEM_ROM],   NULL, "iobc.internal.bootmem", &s->mem_rom,   0, 0x100000);
-    memory_region_init_alias(&s->mem_boot[AT91_BOOTMEM_SRAM],  NULL, "iobc.internal.bootmem", &s->mem_sram0, 0, 0x100000);
-    memory_region_init_alias(&s->mem_boot[AT91_BOOTMEM_SDRAM], NULL, "iobc.internal.bootmem", &s->mem_sdram, 0, 0x100000);
+    memory_region_init_alias(&s->mem_boot[AT91_BOOTMEM_ROM], NULL, "iobc.internal.bootmem", &s->mem_rom, 0, 0x100000);
+    memory_region_init_alias(&s->mem_boot[AT91_BOOTMEM_SRAM0], NULL, "iobc.internal.bootmem", &s->mem_sram0, 0, 0x100000);
+    memory_region_init_alias(&s->mem_boot[AT91_BOOTMEM_EBI_NCS0], NULL, "iobc.internal.bootmem", &s->mem_sdram, 0, 0x100000);
 
     // put it all together
     memory_region_add_subregion(address_space_mem, 0x00100000, &s->mem_rom);
@@ -233,9 +233,9 @@ static void iobc_init(MachineState *machine)
     }
     memory_region_transaction_commit();
 
-    // map SDRAM to boot by default
-    memory_region_set_enabled(&s->mem_boot[AT91_BOOTMEM_SDRAM], true);
-    s->mem_boot_target = AT91_BOOTMEM_SDRAM;
+    // map norflash to boot by default
+    memory_region_set_enabled(&s->mem_boot[AT91_BOOTMEM_EBI_NCS0], true);
+    s->mem_boot_target = AT91_BOOTMEM_EBI_NCS0;
 
     // reserved memory, accessing this will abort
     create_reserved_memory_region("iobc.undefined", 0x90000000, 0xF0000000 - 0x90000000);
