@@ -54,15 +54,23 @@ static void matrix_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsig
     case MATRIX_MRCR:
         s->reg_mrcr = value;
 
+        // RCB0: Remap Command Bit for AHB Master 0 (ARM926 Instruction)
+        // RCB1: Remap Command Bit for AHB Master 1 (ARM926 Data)
+
         if ((value & MRCR_RCB0) && (value & MRCR_RCB1)) {
             matrix_bootmem_remap(s, AT91_BOOTMEM_SRAM0);
-        } else if ((value & MRCR_RCB0) == 0 && (value & MRCR_RCB1) == 0) {
+
+        } else if (!(value & MRCR_RCB0) && !(value & MRCR_RCB1)) {
             // TODO: switch between rom and EBI_NCS0 (SDRAM) based on BMS
             matrix_bootmem_remap(s, AT91_BOOTMEM_EBI_NCS0);
+
         } else {
-            // TODO: cannot handle masters independently
-            error_report("at91.matrix: unimplemented write access at 0x%02lx [value; 0x%08lx]",
-                         offset, value);
+            /*
+             * QEMU doesn't allow us to remap data indpeendently from
+             * instructions. For QEMU, both are the same. So we can only make
+             * this a hard error to catch it in case this happens...
+             */
+            error_report("at91.matrix: cannot set REMAP independently for Data and Instruction");
             abort();
         }
         break;
