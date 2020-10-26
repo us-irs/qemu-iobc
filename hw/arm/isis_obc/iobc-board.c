@@ -217,7 +217,7 @@ static void iobc_init(MachineState *machine)
     // bootmem aliases
     memory_region_init_alias(&s->mem_boot[AT91_BOOTMEM_ROM], NULL, "iobc.internal.bootmem", &s->mem_rom, 0, 0x100000);
     memory_region_init_alias(&s->mem_boot[AT91_BOOTMEM_SRAM0], NULL, "iobc.internal.bootmem", &s->mem_sram0, 0, 0x100000);
-    memory_region_init_alias(&s->mem_boot[AT91_BOOTMEM_EBI_NCS0], NULL, "iobc.internal.bootmem", &s->mem_sdram, 0, 0x100000);
+    memory_region_init_alias(&s->mem_boot[AT91_BOOTMEM_EBI_NCS0], NULL, "iobc.internal.bootmem", &s->mem_pflash, 0, 0x100000);
 
     // put it all together
     memory_region_add_subregion(address_space_mem, 0x00100000, &s->mem_rom);
