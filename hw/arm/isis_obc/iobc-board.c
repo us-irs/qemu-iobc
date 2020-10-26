@@ -233,9 +233,9 @@ static void iobc_init(MachineState *machine)
     }
     memory_region_transaction_commit();
 
-    // map norflash to boot by default
-    memory_region_set_enabled(&s->mem_boot[AT91_BOOTMEM_EBI_NCS0], true);
-    s->mem_boot_target = AT91_BOOTMEM_EBI_NCS0;
+    // by default REMAP = 0, so initial bootmem mapping depends on BMS only
+    s->mem_boot_target = AT91_BMS_INIT ? AT91_BOOTMEM_ROM : AT91_BOOTMEM_EBI_NCS0;
+    memory_region_set_enabled(&s->mem_boot[s->mem_boot_target], true);
 
     // reserved memory, accessing this will abort
     create_reserved_memory_region("iobc.undefined", 0x90000000, 0xF0000000 - 0x90000000);
