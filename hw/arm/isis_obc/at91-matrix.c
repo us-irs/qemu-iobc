@@ -11,11 +11,21 @@
 #include "at91-matrix.h"
 #include "qemu/error-report.h"
 
+#define MATRIX_MCFG0        0x000
+#define MATRIX_MCFG4        0x010
+#define MATRIX_MCFG5        0x014
+#define MATRIX_MCFG_STRIDE  4
+#define MATRIX_SCFG0        0x040
+#define MATRIX_SCFG4        0x050
+#define MATRIX_SCFG_STRIDE  4
+#define MATRIX_PRAS0        0x080
+#define MATRIX_PRAS4        0x0A0
+#define MATRIX_PRAS_STRIDE  8
+#define MATRIX_MRCR         0x100
+#define EBI_CSA             0x11C
 
-#define MATRIX_MRCR 0x100
-
-#define MRCR_RCB0   1
-#define MRCR_RCB1   2
+#define MRCR_RCB0           BIT(0)
+#define MRCR_RCB1           BIT(1)
 
 
 inline static void matrix_bootmem_remap(MatrixState *s, at91_bootmem_region target)
@@ -58,15 +68,33 @@ static uint64_t matrix_mmio_read(void *opaque, hwaddr offset, unsigned size)
     info_report("at91.matrix: read access at 0x%02lx with size: 0x%02x", offset, size);
 
     switch (offset) {
+    case MATRIX_MCFG0 ... MATRIX_MCFG4:
+        if ((offset - MATRIX_MCFG0) % MATRIX_MCFG_STRIDE != 0)
+            break;
+
+        return s->reg_mcfg[(offset - MATRIX_MCFG0) / MATRIX_MCFG_STRIDE];
+
+    case MATRIX_SCFG0 ... MATRIX_SCFG4:
+        if ((offset - MATRIX_SCFG0) % MATRIX_SCFG_STRIDE != 0)
+            break;
+
+        return s->reg_scfg[(offset - MATRIX_SCFG0) / MATRIX_SCFG_STRIDE];
+
+    case MATRIX_PRAS0 ... MATRIX_PRAS4:
+        if ((offset - MATRIX_PRAS0) % MATRIX_PRAS_STRIDE != 0)
+            break;
+
+        return s->reg_pras[(offset - MATRIX_PRAS0) / MATRIX_PRAS_STRIDE];
+
     case MATRIX_MRCR:
         return s->reg_mrcr;
 
-    // TODO
-
-    default:
-        error_report("at91.matrix: illegal/unimplemented read access at 0x%02lx", offset);
-        abort();
+    case EBI_CSA:
+        return s->reg_ebi_csa;
     }
+
+    error_report("at91.matrix: illegal/unimplemented read access at 0x%02lx", offset);
+    abort();
 }
 
 static void matrix_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
@@ -77,18 +105,44 @@ static void matrix_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsig
                 offset, size, value);
 
     switch (offset) {
+    case MATRIX_MCFG0 ... MATRIX_MCFG5:
+        if ((offset - MATRIX_MCFG0) % MATRIX_MCFG_STRIDE != 0)
+            break;
+
+        s->reg_mcfg[(offset - MATRIX_MCFG0) / MATRIX_MCFG_STRIDE] = value;
+        // TODO
+        return;
+
+    case MATRIX_SCFG0 ... MATRIX_SCFG4:
+        if ((offset - MATRIX_SCFG0) % MATRIX_SCFG_STRIDE != 0)
+            break;
+
+        s->reg_scfg[(offset - MATRIX_SCFG0) / MATRIX_SCFG_STRIDE] = value;
+        // TODO
+        return;
+
+    case MATRIX_PRAS0 ... MATRIX_PRAS4:
+        if ((offset - MATRIX_PRAS0) % MATRIX_PRAS_STRIDE != 0)
+            break;
+
+        s->reg_pras[(offset - MATRIX_PRAS0) / MATRIX_PRAS_STRIDE] = value;
+        // TODO
+        return;
+
     case MATRIX_MRCR:
         s->reg_mrcr = value;
         matrix_bootmem_update(s);
-        break;
+        return;
 
-    // TODO
-
-    default:
-        error_report("at91.matrix: illegal/unimplemented write access at 0x%02lx [value; 0x%08lx]",
-                     offset, value);
-        abort();
+    case EBI_CSA:
+        s->reg_ebi_csa = value;
+        // TODO
+        return;
     }
+
+    error_report("at91.matrix: illegal/unimplemented write access at 0x%02lx [value; 0x%08lx]",
+                     offset, value);
+    abort();
 }
 
 static const MemoryRegionOps matrix_mmio_ops = {
@@ -110,19 +164,44 @@ static void matrix_device_init(Object *obj)
     sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->mmio);
 }
 
+static void matrix_reset_registers(MatrixState *s)
+{
+    s->reg_mcfg[0] = 0x00;
+    s->reg_mcfg[1] = 0x02;
+    s->reg_mcfg[2] = 0x02;
+    s->reg_mcfg[3] = 0x02;
+    s->reg_mcfg[4] = 0x02;
+    s->reg_mcfg[5] = 0x02;
+
+    s->reg_scfg[0] = 0x10;
+    s->reg_scfg[1] = 0x10;
+    s->reg_scfg[2] = 0x10;
+    s->reg_scfg[3] = 0x10;
+    s->reg_scfg[4] = 0x10;
+
+    s->reg_pras[0] = 0x00;
+    s->reg_pras[1] = 0x00;
+    s->reg_pras[2] = 0x00;
+    s->reg_pras[3] = 0x00;
+    s->reg_pras[4] = 0x00;
+
+    s->reg_mrcr = 0;
+    s->reg_ebi_csa = 0x00010000;
+}
+
 static void matrix_device_realize(DeviceState *dev, Error **errp)
 {
     MatrixState *s = AT91_MATRIX(dev);
 
+    matrix_reset_registers(s);
     s->bms = AT91_BMS_INIT;
-    s->reg_mrcr = 0;
 }
 
 static void matrix_device_reset(DeviceState *dev)
 {
     MatrixState *s = AT91_MATRIX(dev);
 
-    s->reg_mrcr = 0;
+    matrix_reset_registers(s);
     matrix_bootmem_update(s);
 }
 

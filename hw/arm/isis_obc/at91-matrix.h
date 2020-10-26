@@ -32,7 +32,11 @@ typedef struct {
 
     MemoryRegion mmio;
 
+    uint32_t reg_mcfg[6];
+    uint32_t reg_scfg[5];
+    uint32_t reg_pras[5];
     uint32_t reg_mrcr;
+    uint32_t reg_ebi_csa;
     bool bms;
 
     at91_bootmem_remap_cb *bootmem_cb;
