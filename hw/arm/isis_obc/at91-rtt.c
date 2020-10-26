@@ -147,12 +147,12 @@ static void rtt_reset_registers(RttState *s)
 static void rtt_device_realize(DeviceState *dev, Error **errp)
 {
     RttState *s = AT91_RTT(dev);
-    rtt_reset_registers(s);
 
     ptimer_transaction_begin(s->timer);
     ptimer_set_limit(s->timer, 1, 1);
-    ptimer_run(s->timer, 0);
     ptimer_transaction_commit(s->timer);
+
+    rtt_reset_registers(s);
 }
 
 static void rtt_device_reset(DeviceState *dev)
