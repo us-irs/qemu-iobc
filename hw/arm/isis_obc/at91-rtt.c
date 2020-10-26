@@ -103,7 +103,7 @@ static void rtt_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned
         break;
 
     default:
-        error_report("at91.rtt: illegal read access at 0x%02lx", offset);
+        error_report("at91.rtt: illegal write access at 0x%02lx (value: 0x%08lx)", offset, value);
         abort();
     }
 
