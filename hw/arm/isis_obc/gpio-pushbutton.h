@@ -8,6 +8,11 @@
  *
  * Useful for the AT91 getting-started example. Currently not added to the
  * board.
+ *
+ * Copyright (c) 2019-2020 KSat e.V. Stuttgart
+ *
+ * This work is licensed under the terms of the GNU GPL, version 2 or, at your
+ * option, any later version. See the COPYING file in the top-level directory.
  */
 
 #ifndef HW_ARM_ISIS_OBC_GPIO_PUSHBUTTON_H

@@ -30,6 +30,11 @@
  * multi-frame transfers, meaning multiple frames being chained together (e.g.
  * via the same sequence number) to allow larger payloads by concatenating
  * them (though this is currently not implemented in any such device).
+ *
+ * Copyright (c) 2019-2020 KSat e.V. Stuttgart
+ *
+ * This work is licensed under the terms of the GNU GPL, version 2 or, at your
+ * option, any later version. See the COPYING file in the top-level directory.
  */
 
 #ifndef HW_ARM_ISIS_OBC_IOXFER_SERVER_H

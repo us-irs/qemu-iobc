@@ -4,6 +4,11 @@
  * Processor and peripheral resets initiated by code.
  *
  * See at91-rstc.c for implementation status.
+ *
+ * Copyright (c) 2019-2020 KSat e.V. Stuttgart
+ *
+ * This work is licensed under the terms of the GNU GPL, version 2 or, at your
+ * option, any later version. See the COPYING file in the top-level directory.
  */
 
 #ifndef HW_ARM_ISIS_OBC_RSTC_H

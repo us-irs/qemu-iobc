@@ -4,6 +4,11 @@
  * Support routines and structures to simplify peripheral data controller
  * (PDC) transfer implementations for I/O device implementations (USART, TWI,
  * SPI, ...). See e.g. at91-usart.c for usage.
+ *
+ * Copyright (c) 2019-2020 KSat e.V. Stuttgart
+ *
+ * This work is licensed under the terms of the GNU GPL, version 2 or, at your
+ * option, any later version. See the COPYING file in the top-level directory.
  */
 
 #ifndef HW_ARM_ISIS_OBC_PDC_H

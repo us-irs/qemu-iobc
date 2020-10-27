@@ -9,6 +9,11 @@
  * to the AIC itself on line 1. All other interrupts should be connected to
  * their corresponding AIC IRQ line (see AT91 technical documentation for
  * details).
+ *
+ * Copyright (c) 2019-2020 KSat e.V. Stuttgart
+ *
+ * This work is licensed under the terms of the GNU GPL, version 2 or, at your
+ * option, any later version. See the COPYING file in the top-level directory.
  */
 
 #ifndef HW_ARM_ISIS_OBC_AIC_H
