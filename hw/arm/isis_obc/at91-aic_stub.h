@@ -5,6 +5,11 @@
  * to the Advanced Interrupt Controller (AIC). SYSC devices share a single
  * interrupt line of the AIC, this stub collects them and ORs them together to
  * a single qemu_irq to be forwarded to the AIC.
+ *
+ * Copyright (c) 2019-2020 KSat e.V. Stuttgart
+ *
+ * This work is licensed under the terms of the GNU GPL, version 2 or, at your
+ * option, any later version. See the COPYING file in the top-level directory.
  */
 
 #ifndef HW_ARM_ISIS_OBC_AIC_STUB_H

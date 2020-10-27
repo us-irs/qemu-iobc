@@ -2,6 +2,11 @@
  * AT91 Universal Synchronous/Asynchronous Receiver/Transmitter.
  *
  * See at91-usart.h for details.
+ *
+ * Copyright (c) 2019-2020 KSat e.V. Stuttgart
+ *
+ * This work is licensed under the terms of the GNU GPL, version 2 or, at your
+ * option, any later version. See the COPYING file in the top-level directory.
  */
 
 // Overview of TODOs:

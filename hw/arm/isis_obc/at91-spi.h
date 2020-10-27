@@ -34,6 +34,11 @@
  * - Master clock of AT91 must be set/updated via at91_spi_set_master_clock.
  *
  * See at91-spi.c for implementation status.
+ *
+ * Copyright (c) 2019-2020 KSat e.V. Stuttgart
+ *
+ * This work is licensed under the terms of the GNU GPL, version 2 or, at your
+ * option, any later version. See the COPYING file in the top-level directory.
  */
 
 #ifndef HW_ARM_ISIS_OBC_SPI_H

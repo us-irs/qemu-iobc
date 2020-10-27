@@ -6,6 +6,11 @@
  * read/write frontend without any side-effects. Anything the processor
  * sees/that can be accessed via register reads on this device are handled as
  * per specification.
+ *
+ * Copyright (c) 2019-2020 KSat e.V. Stuttgart
+ *
+ * This work is licensed under the terms of the GNU GPL, version 2 or, at your
+ * option, any later version. See the COPYING file in the top-level directory.
  */
 
 #ifndef HW_ARM_ISIS_OBC_SDRAMC_H

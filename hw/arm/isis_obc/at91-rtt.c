@@ -1,5 +1,10 @@
 /*
  * AT91 Real-Time Timer.
+ *
+ * Copyright (c) 2019-2020 KSat e.V. Stuttgart
+ *
+ * This work is licensed under the terms of the GNU GPL, version 2 or, at your
+ * option, any later version. See the COPYING file in the top-level directory.
  */
 
 #include "at91-rtt.h"
