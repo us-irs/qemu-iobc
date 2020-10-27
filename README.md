@@ -53,17 +53,32 @@ To test whether QEMU will run with the script, run the second command from the n
 
 ## Running QEMU for ISIS-OBC
 
-From the build directory, run
+From the root directory, run
 ```sh
-./arm-softmmu/qemu-system-arm -M isis-obc -monitor stdio \
-    -bios ./path/to/sourceobsw-at91sam9g20_ek-sdram.bin
+./iobc-loader                                    \
+    -f <file-addr> ./path/to/bin -s <start-addr> \
+    -- -monitor stdio
 ```
-Make sure the path to the binary is set up correctly.
-Due to the current board configuration, only the `sdram` image is supported.
-The configuration to pipe the serial output to the console directly is:
+Make sure the path to the binary is set up correctly and use the appropriate address to load the file to (`<file-addr>`) and start address, i.e. initial program counter (`<start-addr>`).
+Debug-loading the `sdram` binary works, for example with
 ```sh
-./arm-softmmu/qemu-system-arm -M isis-obc -serial stdio -monitor none \
--bios ./path/to/sourceobsw-at91sam9g20_ek-sdram.bin
+./iobc-loader                       \
+    -f sdram ./path/to/sdram-bin -s sdram -o pmc-mclk \
+    -- -monitor stdio
+```
+while loading the full `nofrlash` binary works with 
+```sh
+./iobc-loader                       \
+    -f norflash ./path/to/norflash-bin -s norflash \
+    -- -monitor stdio
+```
+See `./iobc-loader -h` for more information.
+The `iobc-loader` script will load and initialize the IOBC and load the specified files accordingly (more than one file can be specified at the same time).
+Options after the `--` are directly forwarded to the underlying `qemu-system-arm`.
+
+The QEMU options to pipe the serial output to the console directly are:
+```sh
+-serial stdio -monitor none
 ```
 To have access to the QMP protocoll, have a look at the sections below.
 
@@ -89,9 +104,11 @@ options to the `qemu-system-arm` call.
 
 As an example, a full command to run the iOBC on QEMU with two SD-Cards, provided as `sd0.img` and `sd1.img`, is
 ```
-./arm-softmmu/qemu-system-arm -M isis-obc -monitor stdio \
-    -bios ./path/to/sourceobsw-at91sam9g20_ek-sdram.bin  \
-    -drive if=sd,index=0,format=raw,file=sd0.img         \
+./iobc-lodaer                                              \
+    -f sdram ./path/to/sourceobsw-at91sam9g20_ek-sdram.bin \
+    -s sdram -o pmc-mclk                                   \
+    -- -monitor stdio                                      \
+    -drive if=sd,index=0,format=raw,file=sd0.img           \
     -drive if=sd,index=1,format=raw,file=sd1.img
 ```
 
@@ -100,7 +117,7 @@ As an example, a full command to run the iOBC on QEMU with two SD-Cards, provide
 To manipulate and create image files, QEMU provides the `qemu-img` tool.
 A `raw`-type image can be created via the command
 ```
-./qemu-img create -f raw sd0.img 4G
+./build/qemu-img create -f raw sd0.img 4G
 ```
 The `-f raw` option specifies the type as being `raw`, `sd0.img` is the path to the image file, and `4G` specifies that the image should have a size of four gigabytes.
 Change the parameters according to your needs.
@@ -124,8 +141,10 @@ This way it can be ensured that no initial communication between machine and dev
 
 For this, you will need to add the `-qmp` and `-S` flags, e.g. like this:
 ```sh
-./arm-softmmu/qemu-system-arm -M isis-obc -monitor stdio \
-    -bios ./path/to/sourceobsw-at91sam9g20_ek-sdram.bin \
+./iobc-loader                                              \
+    -f sdram ./path/to/sourceobsw-at91sam9g20_ek-sdram.bin \
+    -s sdram -o pmc-mclk                                   \
+    -- -monitor stdio                                      \
     -qmp unix:/tmp/qemu,server -S
 ```
 This opens a Unix domain socket at `/tmp/qemu`.
@@ -157,16 +176,17 @@ To obtain debug information, load the symbols from the `.elf` file generated whe
 
 For example, the following commands can be used to
 - run QEMU:
-  ```
-  ./arm-softmmu/qemu-system-arm -M isis-obc -monitor stdio \
-      -bios ./path/to/sourceobsw-at91sam9g20_ek-sdram.bin -s -S
+  ```sh
+  ./iobc-loader                                              \
+      -f sdram ./path/to/sourceobsw-at91sam9g20_ek-sdram.bin \
+      -s sdram -o pmc-mclk -- -monitor stdio -s -S
   ```
 
 - run GDB:
   ```
   arm-none-eabi-gdb \
       -ex 'target remote localhost:1234' \
-      -ex 'symbol-file _bin/sam9g20/devel/sourceobsw-at91sam9g20_ek-sdram.elf'
+      -ex 'symbol-file ./path/to/sourceobsw-at91sam9g20_ek-sdram.elf'
   ```
 in your terminal.
 IDEs with GDB support (Eclipse, VS-Code) can be configured accordingly.
