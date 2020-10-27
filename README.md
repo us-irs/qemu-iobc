@@ -190,3 +190,7 @@ For example, the following commands can be used to
   ```
 in your terminal.
 IDEs with GDB support (Eclipse, VS-Code) can be configured accordingly.
+
+## Examples for External Peripheral Simulation
+
+Example scripts for simulation of external peripherals can be found in `./scripts/iobc-examples`.
