@@ -1,4 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
+#
+# Example for PIO peripheral simulation on the isis-obc board.
+#
+# Copyright (c) 2019-2020 KSat e.V. Stuttgart
+#
+# This work is licensed under the terms of the GNU GPL, version 2 or, at your
+# option, any later version. See the COPYING file in the top-level directory.
+
 import asyncio
 import struct
 import re
