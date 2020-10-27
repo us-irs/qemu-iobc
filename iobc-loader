@@ -1,5 +1,11 @@
 #!/bin/bash
+#
 # QEMU loader script for IOBC/AT91.
+#
+# Copyright (c) 2020 KSat e.V. Stuttgart
+#
+# This work is licensed under the terms of the GNU GPL, version 2 or, at your
+# option, any later version. See the COPYING file in the top-level directory.
 
 set -u              # abort on undefined variables
 
