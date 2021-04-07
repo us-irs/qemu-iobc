@@ -41,7 +41,7 @@ For this, it is sufficient to only specify `arm-softmmu` as emulation target.
 
 Finally build QEMU via
 ```sh
-make -j`nproc`
+make -j
 ```
 Note that you only need to re-run the latest step (i.e. `make` from inside the build directory) when you make changes to the source-code and want to rebuild.
 
