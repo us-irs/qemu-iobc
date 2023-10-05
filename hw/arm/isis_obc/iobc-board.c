@@ -11,7 +11,6 @@
  */
 
 #include "qemu/osdep.h"
-#include "qemu-common.h"
 #include "qemu/error-report.h"
 #include "qapi/error.h"
 #include "hw/hw.h"
@@ -84,7 +83,6 @@ static const PmcInitState pmc_init_state_sdram = {
 static struct arm_boot_info iobc_board_binfo = {
     .loader_start     = IOBC_START_ADDRESS,
     .ram_size         = 0x10000000,
-    .nb_cpus          = 1,
 };
 
 
@@ -263,8 +261,8 @@ static void iobc_init(MachineState *machine)
     create_reserved_memory_region("iobc.internal.reserved3", 0x504000, 0x0FFFFFFF - 0x504000);
 
     // Advanced Interrupt Controller
-    s->dev_aic = qdev_create(NULL, TYPE_AT91_AIC);
-    qdev_init_nofail(s->dev_aic);
+    s->dev_aic = qdev_new(TYPE_AT91_AIC);
+    qdev_realize_and_unref(s->dev_aic, NULL, &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_aic), 0, 0xFFFFF000);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_aic), 0, qdev_get_gpio_in(DEVICE(s->cpu), ARM_CPU_IRQ));
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_aic), 1, qdev_get_gpio_in(DEVICE(s->cpu), ARM_CPU_FIQ));
@@ -273,8 +271,8 @@ static void iobc_init(MachineState *machine)
     }
 
     // Advanced Interrupt Controller: Stub for or-ing SYSC interrupts
-    s->dev_aic_stub = qdev_create(NULL, TYPE_AT91_AIC_STUB);
-    qdev_init_nofail(s->dev_aic_stub);
+    s->dev_aic_stub = qdev_new(TYPE_AT91_AIC_STUB);
+    qdev_realize_and_unref(s->dev_aic_stub, NULL, &error_abort);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_aic_stub), 0, s->irq_aic[1]);
     for (i = 0; i < 32; i++) {
         s->irq_sysc[i] = qdev_get_gpio_in_named(s->dev_aic_stub, "irq-line", i);
@@ -289,115 +287,115 @@ static void iobc_init(MachineState *machine)
     at91_matrix_set_bootmem_remap_callback(AT91_MATRIX(s->dev_matrix), s, iobc_bootmem_remap);
 
     // Debug Unit
-    s->dev_dbgu = qdev_create(NULL, TYPE_AT91_DBGU);
+    s->dev_dbgu = qdev_new(TYPE_AT91_DBGU);
     qdev_prop_set_chr(s->dev_dbgu, "chardev", serial_hd(0));
-    qdev_init_nofail(s->dev_dbgu);
+    qdev_realize_and_unref(s->dev_dbgu, NULL, &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_dbgu), 0, 0xFFFFF200);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_dbgu), 0, s->irq_sysc[1]);
 
     // Parallel Input Ouput Controller
-    s->dev_pio_a = qdev_create(NULL, TYPE_AT91_PIO);
+    s->dev_pio_a = qdev_new(TYPE_AT91_PIO);
     qdev_prop_set_string(s->dev_pio_a, "socket", SOCKET_PIOA);
-    qdev_init_nofail(s->dev_pio_a);
+    qdev_realize_and_unref(s->dev_pio_a, NULL, &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_pio_a), 0, 0xFFFFF400);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_pio_a), 0, s->irq_aic[2]);
 
-    s->dev_pio_b = qdev_create(NULL, TYPE_AT91_PIO);
+    s->dev_pio_b = qdev_new(TYPE_AT91_PIO);
     qdev_prop_set_string(s->dev_pio_b, "socket", SOCKET_PIOB);
-    qdev_init_nofail(s->dev_pio_b);
+    qdev_realize_and_unref(s->dev_pio_b, NULL, &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_pio_b), 0, 0xFFFFF600);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_pio_b), 0, s->irq_aic[3]);
 
-    s->dev_pio_c = qdev_create(NULL, TYPE_AT91_PIO);
+    s->dev_pio_c = qdev_new(TYPE_AT91_PIO);
     qdev_prop_set_string(s->dev_pio_c, "socket", SOCKET_PIOC);
-    qdev_init_nofail(s->dev_pio_c);
+    qdev_realize_and_unref(s->dev_pio_c, NULL, &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_pio_c), 0, 0xFFFFF800);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_pio_c), 0, s->irq_aic[4]);
 
     // TODO: connect PIO(A,B,C) peripheral pins
 
     // TWI
-    s->dev_twi = qdev_create(NULL, TYPE_AT91_TWI);
+    s->dev_twi = qdev_new(TYPE_AT91_TWI);
     qdev_prop_set_string(s->dev_twi, "socket", SOCKET_TWI);
-    qdev_init_nofail(s->dev_twi);
+    qdev_realize_and_unref(s->dev_twi, NULL, &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_twi), 0, 0xFFFAC000);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_twi), 0, s->irq_aic[11]);
 
     // USARTs
-    s->dev_usart0 = qdev_create(NULL, TYPE_AT91_USART);
+    s->dev_usart0 = qdev_new(TYPE_AT91_USART);
     qdev_prop_set_string(s->dev_usart0, "socket", SOCKET_USART0);
-    qdev_init_nofail(s->dev_usart0);
+    qdev_realize_and_unref(s->dev_usart0, NULL, &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_usart0), 0, 0xFFFB0000);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_usart0), 0, s->irq_aic[6]);
 
-    s->dev_usart1 = qdev_create(NULL, TYPE_AT91_USART);
+    s->dev_usart1 = qdev_new(TYPE_AT91_USART);
     qdev_prop_set_string(s->dev_usart1, "socket", SOCKET_USART1);
-    qdev_init_nofail(s->dev_usart1);
+    qdev_realize_and_unref(s->dev_usart1, NULL, &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_usart1), 0, 0xFFFB4000);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_usart1), 0, s->irq_aic[7]);
 
-    s->dev_usart2 = qdev_create(NULL, TYPE_AT91_USART);
+    s->dev_usart2 = qdev_new(TYPE_AT91_USART);
     qdev_prop_set_string(s->dev_usart2, "socket", SOCKET_USART2);
-    qdev_init_nofail(s->dev_usart2);
+    qdev_realize_and_unref(s->dev_usart2, NULL, &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_usart2), 0, 0xFFFB8000);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_usart2), 0, s->irq_aic[8]);
 
-    s->dev_usart3 = qdev_create(NULL, TYPE_AT91_USART);
+    s->dev_usart3 = qdev_new(TYPE_AT91_USART);
     qdev_prop_set_string(s->dev_usart3, "socket", SOCKET_USART3);
-    qdev_init_nofail(s->dev_usart3);
+    qdev_realize_and_unref(s->dev_usart3, NULL, &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_usart3), 0, 0xFFFD0000);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_usart3), 0, s->irq_aic[23]);
 
-    s->dev_usart4 = qdev_create(NULL, TYPE_AT91_USART);
+    s->dev_usart4 = qdev_new(TYPE_AT91_USART);
     qdev_prop_set_string(s->dev_usart4, "socket", SOCKET_USART4);
-    qdev_init_nofail(s->dev_usart4);
+    qdev_realize_and_unref(s->dev_usart4, NULL, &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_usart4), 0, 0xFFFD4000);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_usart4), 0, s->irq_aic[24]);
 
-    s->dev_usart5 = qdev_create(NULL, TYPE_AT91_USART);
+    s->dev_usart5 = qdev_new(TYPE_AT91_USART);
     qdev_prop_set_string(s->dev_usart5, "socket", SOCKET_USART5);
-    qdev_init_nofail(s->dev_usart5);
+    qdev_realize_and_unref(s->dev_usart5, NULL, &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_usart5), 0, 0xFFFD8000);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_usart5), 0, s->irq_aic[25]);
 
     // SPIs
-    s->dev_spi0 = qdev_create(NULL, TYPE_AT91_SPI);
+    s->dev_spi0 = qdev_new(TYPE_AT91_SPI);
     qdev_prop_set_string(s->dev_spi0, "socket", SOCKET_SPI0);
-    qdev_init_nofail(s->dev_spi0);
+    qdev_realize_and_unref(s->dev_spi0, NULL, &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_spi0), 0, 0xFFFC8000);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_spi0), 0, s->irq_aic[12]);
 
-    s->dev_spi1 = qdev_create(NULL, TYPE_AT91_SPI);
+    s->dev_spi1 = qdev_new(TYPE_AT91_SPI);
     qdev_prop_set_string(s->dev_spi1, "socket", SOCKET_SPI1);
-    qdev_init_nofail(s->dev_spi1);
+    qdev_realize_and_unref(s->dev_spi1, NULL, &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_spi1), 0, 0xFFFCC000);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_spi1), 0, s->irq_aic[13]);
 
     // SDRAMC
-    s->dev_sdramc = qdev_create(NULL, TYPE_AT91_SDRAMC);
+    s->dev_sdramc = qdev_new(TYPE_AT91_SDRAMC);
     qdev_prop_set_string(s->dev_sdramc, "socket", SOCKET_SDRAMC);
-    qdev_init_nofail(s->dev_sdramc);
+    qdev_realize_and_unref(s->dev_sdramc, NULL, &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_sdramc), 0, 0xFFFFEA00);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_sdramc), 0, s->irq_sysc[2]);
 
     // MCI
-    s->dev_mci = qdev_create(NULL, TYPE_AT91_MCI);
-    qdev_init_nofail(s->dev_mci);
+    s->dev_mci = qdev_new(TYPE_AT91_MCI);
+    qdev_realize_and_unref(s->dev_mci, NULL, &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_mci), 0, 0xFFFA8000);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_mci), 0, s->irq_aic[9]);
     qdev_connect_gpio_out_named(s->dev_pio_b, "pin.out", 7, qdev_get_gpio_in_named(s->dev_mci, "select", 0));
 
     // TC0, TC1, TC2
-    s->dev_tc012 = qdev_create(NULL, TYPE_AT91_TC);
-    qdev_init_nofail(s->dev_tc012);
+    s->dev_tc012 = qdev_new(TYPE_AT91_TC);
+    qdev_realize_and_unref(s->dev_tc012, NULL, &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_tc012), 0, 0xFFFA0000);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_tc012), 0, s->irq_aic[17]);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_tc012), 1, s->irq_aic[18]);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_tc012), 2, s->irq_aic[19]);
 
     // TC3, TC4, TC5
-    s->dev_tc345 = qdev_create(NULL, TYPE_AT91_TC);
-    qdev_init_nofail(s->dev_tc345);
+    s->dev_tc345 = qdev_new(TYPE_AT91_TC);
+    qdev_realize_and_unref(s->dev_tc345, NULL, &error_abort);
     sysbus_mmio_map(SYS_BUS_DEVICE(s->dev_tc345), 0, 0xFFFDC000);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_tc345), 0, s->irq_aic[26]);
     sysbus_connect_irq(SYS_BUS_DEVICE(s->dev_tc345), 1, s->irq_aic[27]);

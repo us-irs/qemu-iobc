@@ -40,11 +40,11 @@ typedef struct {
  */
 inline static void create_reserved_memory_region(const char* name, hwaddr base, hwaddr size)
 {
-    DeviceState *dev = qdev_create(NULL, TYPE_IOBC_RESERVED_MEMORY);
+    DeviceState *dev = qdev_new(TYPE_IOBC_RESERVED_MEMORY);
 
     qdev_prop_set_string(dev, "name", name);
     qdev_prop_set_uint64(dev, "size", size);
-    qdev_init_nofail(dev);
+    qdev_realize_and_unref(dev, NULL,  &error_abort);
 
     sysbus_mmio_map_overlap(SYS_BUS_DEVICE(dev), 0, base, -1000);
 }
