@@ -670,7 +670,7 @@ static void twi_device_init(Object *obj)
     memory_region_init_io(&s->mmio, OBJECT(s), &twi_mmio_ops, s, "at91.twi", 0x4000);
     sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->mmio);
 
-    s->chrtx_timer = ptimer_init(xfer_chrtx_timer_tick, s, PTIMER_POLICY_DEFAULT);
+    s->chrtx_timer = ptimer_init(xfer_chrtx_timer_tick, s, PTIMER_POLICY_LEGACY);
 }
 
 static void twi_reset_registers(TwiState *s)
@@ -723,7 +723,7 @@ static void twi_device_realize(DeviceState *dev, Error **errp)
     }
 }
 
-static void twi_device_unrealize(DeviceState *dev, Error **errp)
+static void twi_device_unrealize(DeviceState *dev)
 {
     TwiState *s = AT91_TWI(dev);
 

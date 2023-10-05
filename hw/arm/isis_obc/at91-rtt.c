@@ -131,7 +131,7 @@ static void rtt_device_init(Object *obj)
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
     RttState *s = AT91_RTT(obj);
 
-    s->timer = ptimer_init(rtt_timer_tick, s, PTIMER_POLICY_DEFAULT);
+    s->timer = ptimer_init(rtt_timer_tick, s, PTIMER_POLICY_LEGACY);
 
     sysbus_init_irq(sbd, &s->irq);
 

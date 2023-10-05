@@ -445,7 +445,7 @@ static void tc_device_init(Object *obj)
 
     for (int i = 0; i < AT91_TC_NUM_CHANNELS; i++) {
         s->chan[i].parent = s;
-        s->chan[i].timer = ptimer_init(tc_timer_tick, &s->chan[i], PTIMER_POLICY_DEFAULT);
+        s->chan[i].timer = ptimer_init(tc_timer_tick, &s->chan[i], PTIMER_POLICY_LEGACY);
         sysbus_init_irq(sbd, &s->chan[i].irq);
     }
 

@@ -441,7 +441,7 @@ static void pio_device_realize(DeviceState *dev, Error **errp)
     }
 }
 
-static void pio_device_unrealize(DeviceState *dev, Error **errp)
+static void pio_device_unrealize(DeviceState *dev)
 {
     PioState *s = AT91_PIO(dev);
 

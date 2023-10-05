@@ -195,7 +195,7 @@ static void sdramc_device_realize(DeviceState *dev, Error **errp)
     }
 }
 
-static void sdramc_device_unrealize(DeviceState *dev, Error **errp)
+static void sdramc_device_unrealize(DeviceState *dev)
 {
     SdramcState *s = AT91_SDRAMC(dev);
 

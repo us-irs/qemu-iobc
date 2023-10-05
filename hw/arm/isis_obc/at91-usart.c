@@ -894,7 +894,7 @@ static void usart_device_realize(DeviceState *dev, Error **errp)
     }
 }
 
-static void usart_device_unrealize(DeviceState *dev, Error **errp)
+static void usart_device_unrealize(DeviceState *dev)
 {
     UsartState *s = AT91_USART(dev);
 

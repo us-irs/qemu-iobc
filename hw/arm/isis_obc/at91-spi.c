@@ -889,7 +889,7 @@ static void spi_device_realize(DeviceState *dev, Error **errp)
     }
 }
 
-static void spi_device_unrealize(DeviceState *dev, Error **errp)
+static void spi_device_unrealize(DeviceState *dev)
 {
     SpiState *s = AT91_SPI(dev);
 

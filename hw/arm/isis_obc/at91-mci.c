@@ -191,9 +191,7 @@ static void mci_pdc_do_read_rcr(MciState *s)
         abort();
     }
 
-    for (size_t i = 0; i < len; i++) {
-        data[i] = sdbus_read_data(sd);
-    }
+    sdbus_read_data(sd, data, len);
 
     // copy buffer to DMA memory
     MemTxResult result = address_space_rw(&address_space_memory, s->pdc.reg_rpr,
@@ -266,9 +264,7 @@ static void mci_pdc_do_write_tcr(MciState *s)
     }
 
     // write buffer to SD card
-    for (size_t i = 0; i < len; i++) {
-        sdbus_write_data(sd, data[i]);
-    }
+    sdbus_write_data(sd, data, len);
 
     g_free(data);
 
@@ -528,9 +524,7 @@ static uint32_t mci_rdr(MciState *s)
 
     // Note: The spec does not clarify endianess/order, only that "words" are
     // read, so assume consecutive bytes.
-    for (int i = 0; i < len; i++) {
-        ((uint8_t *)&buf)[i] = sdbus_read_data(sd);
-    }
+    sdbus_read_data(sd, (void*) &buf, len);
     s->rd_bytes_left -= len;
 
     if (s->rd_bytes_left == 0) {
@@ -574,9 +568,7 @@ static void mci_tdr(MciState *s, uint32_t data)
 
     // Note: The spec does not clarify endianess/order, only that "words" are
     // written, so assume consecutive bytes.
-    for (int i = 0; i < len; i++) {
-        sdbus_write_data(sd, ((uint8_t *)&data)[i]);
-    }
+    sdbus_write_data(sd, (uint8_t *)&data, len);
     s->wr_bytes_left -= len;
     s->wr_bytes_blk += len;
 
@@ -743,8 +735,8 @@ static void mci_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned
 
         if (value & CR_SWRST) {
             mci_reset_registers(s);
-            qbus_reset_all(BUS(&s->sdbus0));
-            qbus_reset_all(BUS(&s->sdbus1));
+            bus_cold_reset(BUS(&s->sdbus0));
+            bus_cold_reset(BUS(&s->sdbus1));
         }
 
         break;
@@ -862,8 +854,8 @@ static void mci_device_init(Object *obj)
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
     MciState *s = AT91_MCI(obj);
 
-    qbus_create_inplace(&s->sdbus0, sizeof(s->sdbus0), TYPE_SD_BUS, DEVICE(s), "sd-bus0");
-    qbus_create_inplace(&s->sdbus1, sizeof(s->sdbus1), TYPE_SD_BUS, DEVICE(s), "sd-bus1");
+    qbus_init(&s->sdbus0, sizeof(s->sdbus0), TYPE_SD_BUS, DEVICE(s), "sd-bus0");
+    qbus_init(&s->sdbus1, sizeof(s->sdbus1), TYPE_SD_BUS, DEVICE(s), "sd-bus1");
     qdev_init_gpio_in_named(DEVICE(s), card_select_irq_handle, "select", 1);
 
     sysbus_init_irq(sbd, &s->irq);
@@ -912,16 +904,16 @@ static void mci_device_realize(DeviceState *dev, Error **errp)
     // SD-Card 1
     di0 = drive_get(IF_SD, 0, 0);
     blk0 = di0 ? blk_by_legacy_dinfo(di0) : NULL;
-    sd0 = qdev_create(qdev_get_child_bus(dev, "sd-bus0"), TYPE_SD_CARD);
-    qdev_prop_set_drive(sd0, "drive", blk0, &error_abort);
-    qdev_init_nofail(sd0);
+    sd0 = qdev_new(TYPE_SD_CARD);
+    qdev_prop_set_drive_err(sd0, "drive", blk0, &error_abort);
+    qdev_realize_and_unref(sd0, qdev_get_child_bus(dev, "sd-bus0"), &error_abort);
 
     // SD-Card 2
     di1 = drive_get(IF_SD, 0, 1);
     blk1 = di1 ? blk_by_legacy_dinfo(di1) : NULL;
-    sd1 = qdev_create(qdev_get_child_bus(dev, "sd-bus1"), TYPE_SD_CARD);
-    qdev_prop_set_drive(sd1, "drive", blk1, &error_abort);
-    qdev_init_nofail(sd1);
+    sd1 = qdev_new(TYPE_SD_CARD);
+    qdev_prop_set_drive_err(sd1, "drive", blk1, &error_abort);
+    qdev_realize_and_unref(sd1, qdev_get_child_bus(dev, "sd-bus1"), &error_abort);
 
     mci_reset_registers(s);
     s->selected_card = 0;

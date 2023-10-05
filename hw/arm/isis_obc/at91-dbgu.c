@@ -24,7 +24,7 @@
 #include "qemu/error-report.h"
 #include "qemu/log.h"
 #include "hw/irq.h"
-#include "hw/qdev-properties.h"
+#include "hw/qdev-properties-system.h"
 
 
 #define DEFAULT_CIDR    0x00000000      // TODO(at91.dbgu.chip_id): get actual chip id
@@ -153,7 +153,7 @@ static uint64_t dbgu_mmio_read(void *opaque, hwaddr offset, unsigned size)
                       "(size %d, offset 0x%" HWADDR_PRIx ")\n",
                       size, offset);
         // TODO(at91.dbgu.pdc): implement PDC support (Sec. 23)
-
+        // fallthrough
     default:
         error_report("at91.dbgu illegal read access at 0x%03lx", offset);
         abort();

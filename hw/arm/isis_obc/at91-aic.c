@@ -357,6 +357,7 @@ static void aic_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned
                 value &= ~(1 << irq);
         }
         s->reg_ipr |= value;
+        break;
 
     case AIC_EOICR:
         aic_irq_stack_pop(s);

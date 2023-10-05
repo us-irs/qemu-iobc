@@ -151,7 +151,7 @@ static void pit_device_init(Object *obj)
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
     PitState *s = AT91_PIT(obj);
 
-    s->timer = ptimer_init(pit_timer_tick, s, PTIMER_POLICY_DEFAULT);
+    s->timer = ptimer_init(pit_timer_tick, s, PTIMER_POLICY_LEGACY);
 
     sysbus_init_irq(sbd, &s->irq);
 
