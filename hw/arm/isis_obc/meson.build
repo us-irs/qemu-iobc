@@ -1,5 +1,6 @@
 arm_ss.add(when: 'CONFIG_ISIS_OBC', if_true: files(
   'iobc-board.c',
+  'iobc-soc.c',
   'iobc-reserved_memory.c',
   'ioxfer-server.c',
   'at91-pmc.c',

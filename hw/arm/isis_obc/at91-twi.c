@@ -89,12 +89,12 @@ struct start_frame {
 };
 
 
-static void twi_update_irq(TwiState *s)
+static void twi_update_irq(At91Twi *s)
 {
     qemu_set_irq(s->irq, !!(s->reg_imr & s->reg_sr));
 }
 
-static void twi_update_clock(TwiState *s)
+static void twi_update_clock(At91Twi *s)
 {
     unsigned ldiv = (CWGR_CLDIV(s) * (1 << CWGR_CKDIV(s))) + 4;
     unsigned hdiv = (CWGR_CHDIV(s) * (1 << CWGR_CKDIV(s))) + 4;
@@ -107,14 +107,14 @@ static void twi_update_clock(TwiState *s)
     }
 }
 
-void at91_twi_set_master_clock(TwiState *s, unsigned mclk)
+void at91_twi_set_master_clock(At91Twi *s, unsigned mclk)
 {
     s->mclk = mclk;
     twi_update_clock(s);
 }
 
 
-static void xfer_send_frame_start(TwiState *s)
+static void xfer_send_frame_start(At91Twi *s)
 {
     struct start_frame data = {
         .dadr = MMR_DADR(s) | ((s->reg_mmr & MMR_MREAD) >> 5),
@@ -128,13 +128,13 @@ static void xfer_send_frame_start(TwiState *s)
                       sizeof(struct start_frame), (uint8_t *)&data);
 }
 
-static void xfer_send_frame_stop(TwiState *s)
+static void xfer_send_frame_stop(At91Twi *s)
 {
     iox_send_command_new(s->server, IOX_CAT_DATA, IOX_CID_CTRL_STOP);
 }
 
 
-static int iox_send_chars(TwiState *s, uint8_t* data, unsigned len)
+static int iox_send_chars(At91Twi *s, uint8_t* data, unsigned len)
 {
     if (!s->server)
         return 0;
@@ -142,7 +142,7 @@ static int iox_send_chars(TwiState *s, uint8_t* data, unsigned len)
     return iox_send_data_multiframe_new(s->server, IOX_CAT_DATA, IOX_CID_DATA_OUT, len, data);
 }
 
-static int xfer_dma_tx_do_tcr(TwiState *s)
+static int xfer_dma_tx_do_tcr(At91Twi *s)
 {
     uint8_t *data = g_new0(uint8_t, s->pdc.reg_tcr);
     if (!data)
@@ -167,7 +167,7 @@ static int xfer_dma_tx_do_tcr(TwiState *s)
 
 static void xfer_chrtx_timer_tick(void *opaque)
 {
-    TwiState *s = opaque;
+    At91Twi *s = opaque;
 
     // If we reach this point, we assuem that the transmission writes to THR
     // are complete. Send all buffered data with start and stop frames.
@@ -186,7 +186,7 @@ static void xfer_chrtx_timer_tick(void *opaque)
     twi_update_irq(s);
 }
 
-static void xfer_chr_transmit(TwiState *s, uint8_t value)
+static void xfer_chr_transmit(At91Twi *s, uint8_t value)
 {
     buffer_reserve(&s->sendbuf, 1);
     buffer_append(&s->sendbuf, &value, 1);
@@ -202,7 +202,7 @@ static void xfer_chr_transmit(TwiState *s, uint8_t value)
     twi_update_irq(s);
 }
 
-static void xfer_chr_receive(TwiState *s, uint8_t chr)
+static void xfer_chr_receive(At91Twi *s, uint8_t chr)
 {
     if (s->reg_sr & SR_RXRDY) {
         s->reg_sr |= SR_OVRE;
@@ -215,7 +215,7 @@ static void xfer_chr_receive(TwiState *s, uint8_t chr)
     twi_update_irq(s);
 }
 
-static void xfer_receiver_next(TwiState *s)
+static void xfer_receiver_next(At91Twi *s)
 {
     if (buffer_empty(&s->rcvbuf))
         return;
@@ -230,7 +230,7 @@ static void xfer_receiver_next(TwiState *s)
 }
 
 
-static void xfer_receiver_dma_updreg(TwiState *s)
+static void xfer_receiver_dma_updreg(At91Twi *s)
 {
     // if first DMA buffer is full, set its flag
     if (!s->pdc.reg_rcr)
@@ -250,7 +250,7 @@ static void xfer_receiver_dma_updreg(TwiState *s)
     }
 }
 
-static void xfer_receiver_dma_rcr(TwiState *s)
+static void xfer_receiver_dma_rcr(At91Twi *s)
 {
     MemTxAttrs attrs = MEMTXATTRS_UNSPECIFIED;
 
@@ -268,7 +268,7 @@ static void xfer_receiver_dma_rcr(TwiState *s)
     s->pdc.reg_rcr -= len;
 }
 
-static void xfer_receiver_dma_rhr(TwiState *s)
+static void xfer_receiver_dma_rhr(At91Twi *s)
 {
     MemTxAttrs attrs = MEMTXATTRS_UNSPECIFIED;
     uint8_t chr = s->reg_rhr;
@@ -284,7 +284,7 @@ static void xfer_receiver_dma_rhr(TwiState *s)
     s->reg_sr &= ~SR_RXRDY;
 }
 
-static void __xfer_receiver_dma(TwiState *s)
+static void __xfer_receiver_dma(At91Twi *s)
 {
     // read from RHR
     if (s->reg_sr & SR_RXRDY) {
@@ -314,7 +314,7 @@ static void __xfer_receiver_dma(TwiState *s)
     }
 }
 
-static void xfer_receiver_dma(TwiState *s)
+static void xfer_receiver_dma(At91Twi *s)
 {
     __xfer_receiver_dma(s);
     twi_update_irq(s);
@@ -331,7 +331,7 @@ static void xfer_receiver_dma(TwiState *s)
 
 static void xfer_dma_rx_start(void *opaque)
 {
-    TwiState *s = opaque;
+    At91Twi *s = opaque;
 
     s->dma_rx_enabled = true;
     xfer_receiver_dma(s);
@@ -339,13 +339,13 @@ static void xfer_dma_rx_start(void *opaque)
 
 static void xfer_dma_rx_stop(void *opaque)
 {
-    TwiState *s = opaque;
+    At91Twi *s = opaque;
     s->dma_rx_enabled = false;
 }
 
 static void xfer_dma_tx_start(void *opaque)
 {
-    TwiState *s = opaque;
+    At91Twi *s = opaque;
 
     if (!s->pdc.reg_tcr)
         return;
@@ -386,7 +386,7 @@ static void xfer_dma_tx_stop(void *opaque)
 }
 
 
-static int iox_receive_data(TwiState *s, struct iox_data_frame *frame)
+static int iox_receive_data(At91Twi *s, struct iox_data_frame *frame)
 {
     bool in_progress = !buffer_empty(&s->rcvbuf);
 
@@ -409,7 +409,7 @@ static int iox_receive_data(TwiState *s, struct iox_data_frame *frame)
 
 static void iox_receive(struct iox_data_frame *frame, void *opaque)
 {
-    TwiState *s = opaque;
+    At91Twi *s = opaque;
     int status = 0;
 
     switch (frame->cat) {
@@ -449,7 +449,7 @@ static void iox_receive(struct iox_data_frame *frame, void *opaque)
 
 static uint64_t twi_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
-    TwiState *s = opaque;
+    At91Twi *s = opaque;
 
     switch (offset) {
     case TWI_MMR:
@@ -492,7 +492,7 @@ static uint64_t twi_mmio_read(void *opaque, hwaddr offset, unsigned size)
 
 static void twi_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
-    TwiState *s = opaque;
+    At91Twi *s = opaque;
 
     switch (offset) {
     case TWI_CR:
@@ -663,7 +663,7 @@ static const MemoryRegionOps twi_mmio_ops = {
 static void twi_device_init(Object *obj)
 {
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-    TwiState *s = AT91_TWI(obj);
+    At91Twi *s = AT91_TWI(obj);
 
     sysbus_init_irq(sbd, &s->irq);
 
@@ -673,7 +673,7 @@ static void twi_device_init(Object *obj)
     s->chrtx_timer = ptimer_init(xfer_chrtx_timer_tick, s, PTIMER_POLICY_LEGACY);
 }
 
-static void twi_reset_registers(TwiState *s)
+static void twi_reset_registers(At91Twi *s)
 {
     s->mode = AT91_TWI_MODE_OFFLINE;
 
@@ -692,7 +692,7 @@ static void twi_reset_registers(TwiState *s)
 
 static void twi_device_realize(DeviceState *dev, Error **errp)
 {
-    TwiState *s = AT91_TWI(dev);
+    At91Twi *s = AT91_TWI(dev);
 
     twi_reset_registers(s);
 
@@ -725,7 +725,7 @@ static void twi_device_realize(DeviceState *dev, Error **errp)
 
 static void twi_device_unrealize(DeviceState *dev)
 {
-    TwiState *s = AT91_TWI(dev);
+    At91Twi *s = AT91_TWI(dev);
 
     if (s->server) {
         iox_server_free(s->server);
@@ -737,12 +737,12 @@ static void twi_device_unrealize(DeviceState *dev)
 
 static void twi_device_reset(DeviceState *dev)
 {
-    TwiState *s = AT91_TWI(dev);
+    At91Twi *s = AT91_TWI(dev);
     twi_reset_registers(s);
 }
 
 static Property twi_device_properties[] = {
-    DEFINE_PROP_STRING("socket", TwiState, socket),
+    DEFINE_PROP_STRING("socket", At91Twi, socket),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -759,7 +759,7 @@ static void twi_class_init(ObjectClass *klass, void *data)
 static const TypeInfo twi_device_info = {
     .name = TYPE_AT91_TWI,
     .parent = TYPE_SYS_BUS_DEVICE,
-    .instance_size = sizeof(TwiState),
+    .instance_size = sizeof(At91Twi),
     .instance_init = twi_device_init,
     .class_init = twi_class_init,
 };

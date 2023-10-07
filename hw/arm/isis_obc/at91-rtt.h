@@ -16,7 +16,7 @@
 
 
 #define TYPE_AT91_RTT "at91-rtt"
-#define AT91_RTT(obj) OBJECT_CHECK(RttState, (obj), TYPE_AT91_RTT)
+#define AT91_RTT(obj) OBJECT_CHECK(At91Rtt, (obj), TYPE_AT91_RTT)
 
 
 typedef struct {
@@ -30,6 +30,6 @@ typedef struct {
     uint32_t reg_ar;
     uint32_t reg_vr;
     uint32_t reg_sr;
-} RttState;
+} At91Rtt;
 
 #endif /* HW_ARM_ISIS_OBC_RTT_H */

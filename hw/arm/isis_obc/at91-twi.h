@@ -53,7 +53,7 @@
 
 
 #define TYPE_AT91_TWI "at91-twi"
-#define AT91_TWI(obj) OBJECT_CHECK(TwiState, (obj), TYPE_AT91_TWI)
+#define AT91_TWI(obj) OBJECT_CHECK(At91Twi, (obj), TYPE_AT91_TWI)
 
 
 typedef enum {
@@ -88,9 +88,9 @@ typedef struct {
 
     At91Pdc pdc;
     bool dma_rx_enabled;
-} TwiState;
+} At91Twi;
 
 
-void at91_twi_set_master_clock(TwiState *s, unsigned mclk);
+void at91_twi_set_master_clock(At91Twi *s, unsigned mclk);
 
 #endif /* HW_ARM_ISIS_OBC_TWI_H */

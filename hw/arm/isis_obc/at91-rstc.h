@@ -19,7 +19,7 @@
 
 
 #define TYPE_AT91_RSTC "at91-rstc"
-#define AT91_RSTC(obj) OBJECT_CHECK(RstcState, (obj), TYPE_AT91_RSTC)
+#define AT91_RSTC(obj) OBJECT_CHECK(At91Rstc, (obj), TYPE_AT91_RSTC)
 
 
 typedef struct {
@@ -30,6 +30,6 @@ typedef struct {
 
     uint32_t reg_sr;
     uint32_t reg_mr;
-} RstcState;
+} At91Rstc;
 
 #endif /* HW_ARM_ISIS_OBC_RSTC_H */

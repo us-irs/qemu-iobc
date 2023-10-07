@@ -23,7 +23,7 @@
 
 
 #define TYPE_AT91_SDRAMC "at91-sdramc"
-#define AT91_SDRAMC(obj) OBJECT_CHECK(SdramcState, (obj), TYPE_AT91_SDRAMC)
+#define AT91_SDRAMC(obj) OBJECT_CHECK(At91Sdramc, (obj), TYPE_AT91_SDRAMC)
 
 typedef struct {
     SysBusDevice parent_obj;
@@ -41,6 +41,6 @@ typedef struct {
     uint32_t reg_imr;
     uint32_t reg_isr;
     uint32_t reg_mdr;
-} SdramcState;
+} At91Sdramc;
 
 #endif /* HW_ARM_ISIS_OBC_SDRAMC_H */

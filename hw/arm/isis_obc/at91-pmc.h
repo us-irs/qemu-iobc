@@ -26,7 +26,7 @@
 #define AT91_PMC_MCK        18432000    // main oscillator frequency
 
 #define TYPE_AT91_PMC "at91-pmc"
-#define AT91_PMC(obj) OBJECT_CHECK(PmcState, (obj), TYPE_AT91_PMC)
+#define AT91_PMC(obj) OBJECT_CHECK(At91Pmc, (obj), TYPE_AT91_PMC)
 
 
 typedef void(at91_mclk_cb)(void *opaque, unsigned value);
@@ -36,7 +36,7 @@ typedef struct {
     uint32_t reg_ckgr_plla;
     uint32_t reg_ckgr_pllb;
     uint32_t reg_pmc_mckr;
-} PmcInitState;
+} At91PmcInitState;
 
 typedef struct {
     SysBusDevice parent_obj;
@@ -44,7 +44,7 @@ typedef struct {
     MemoryRegion mmio;
     qemu_irq irq;
 
-    const PmcInitState *init_state;
+    const At91PmcInitState *init_state;
 
     // registers
     uint32_t reg_pmc_scsr;
@@ -65,20 +65,20 @@ typedef struct {
     // observer for master-clock change
     at91_mclk_cb *mclk_cb;
     void *mclk_opaque;
-} PmcState;
+} At91Pmc;
 
 
 /*
  * Set the callback function to be called when the AT91 master clock changes.
  * Only one callback can be set at a time.
  */
-inline static void at91_pmc_set_mclk_change_callback(PmcState *s, void *opaque, at91_mclk_cb *cb)
+inline static void at91_pmc_set_mclk_change_callback(At91Pmc *s, void *opaque, at91_mclk_cb *cb)
 {
     s->mclk_cb = cb;
     s->mclk_opaque = opaque;
 }
 
-inline static void at91_pmc_set_init_state(PmcState *s, const PmcInitState *init)
+inline static void at91_pmc_set_init_state(At91Pmc *s, const At91PmcInitState *init)
 {
     s->init_state = init;
 }

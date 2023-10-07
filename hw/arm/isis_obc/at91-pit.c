@@ -26,7 +26,7 @@
 #define SR_PITS     0x01
 
 
-void at91_pit_set_master_clock(PitState *s, unsigned mclk)
+void at91_pit_set_master_clock(At91Pit *s, unsigned mclk)
 {
     s->mclk = mclk;
 
@@ -40,7 +40,7 @@ void at91_pit_set_master_clock(PitState *s, unsigned mclk)
 
 static void pit_timer_tick(void *opaque)
 {
-    PitState *s = opaque;
+    At91Pit *s = opaque;
 
     s->reg_sr |= SR_PITS;
     s->picnt = (s->picnt + 1) & 0xFFF;
@@ -59,12 +59,12 @@ static void pit_timer_tick(void *opaque)
 }
 
 
-inline static uint32_t pit_timer_period(PitState *s)
+inline static uint32_t pit_timer_period(At91Pit *s)
 {
     return 1 + (s->reg_mr & MR_PIV);
 }
 
-inline static uint32_t pit_timer_cpiv(PitState *s)
+inline static uint32_t pit_timer_cpiv(At91Pit *s)
 {
     return (s->picnt << 20) | ((pit_timer_period(s) - ptimer_get_count(s->timer)) & 0xFFFFF);
 }
@@ -72,7 +72,7 @@ inline static uint32_t pit_timer_cpiv(PitState *s)
 
 static uint64_t pit_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
-    PitState *s = opaque;
+    At91Pit *s = opaque;
     uint32_t picnt, cpiv;
 
     switch (offset) {
@@ -104,7 +104,7 @@ static uint64_t pit_mmio_read(void *opaque, hwaddr offset, unsigned size)
 
 static void pit_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
-    PitState *s = opaque;
+    At91Pit *s = opaque;
 
     switch (offset) {
     case PIT_MR:
@@ -139,7 +139,7 @@ static const MemoryRegionOps pit_mmio_ops = {
 };
 
 
-static void pit_reset_registers(PitState *s)
+static void pit_reset_registers(At91Pit *s)
 {
     s->reg_mr = 0xFFFFF;
     s->reg_sr = 0;
@@ -149,7 +149,7 @@ static void pit_reset_registers(PitState *s)
 static void pit_device_init(Object *obj)
 {
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-    PitState *s = AT91_PIT(obj);
+    At91Pit *s = AT91_PIT(obj);
 
     s->timer = ptimer_init(pit_timer_tick, s, PTIMER_POLICY_LEGACY);
 
@@ -161,14 +161,14 @@ static void pit_device_init(Object *obj)
 
 static void pit_device_realize(DeviceState *dev, Error **errp)
 {
-    PitState *s = AT91_PIT(dev);
+    At91Pit *s = AT91_PIT(dev);
 
     pit_reset_registers(s);
 }
 
 static void pit_device_reset(DeviceState *dev)
 {
-    PitState *s = AT91_PIT(dev);
+    At91Pit *s = AT91_PIT(dev);
 
     ptimer_transaction_begin(s->timer);
     ptimer_stop(s->timer);
@@ -189,7 +189,7 @@ static void pit_class_init(ObjectClass *klass, void *data)
 static const TypeInfo pit_device_info = {
     .name = TYPE_AT91_PIT,
     .parent = TYPE_SYS_BUS_DEVICE,
-    .instance_size = sizeof(PitState),
+    .instance_size = sizeof(At91Pit),
     .instance_init = pit_device_init,
     .class_init = pit_class_init,
 };

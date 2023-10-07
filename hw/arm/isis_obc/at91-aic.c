@@ -52,12 +52,12 @@
 #define IRQ_NUM_SPURIOUS    0xFF
 
 
-inline static uint8_t aic_irq_get_priority(AicState *s, uint8_t irq)
+inline static uint8_t aic_irq_get_priority(At91Aic *s, uint8_t irq)
 {
     return s->reg_smr[irq] & 7;
 }
 
-inline static uint8_t aic_irq_get_type(AicState *s, uint8_t irq)
+inline static uint8_t aic_irq_get_type(At91Aic *s, uint8_t irq)
 {
     uint8_t srctype = (s->reg_smr[irq] & 0x60) >> 5;
 
@@ -72,23 +72,23 @@ inline static uint8_t aic_irq_get_type(AicState *s, uint8_t irq)
     return srctype;
 }
 
-inline static bool aic_irq_is_edge_triggered(AicState *s, uint8_t irq)
+inline static bool aic_irq_is_edge_triggered(At91Aic *s, uint8_t irq)
 {
     return aic_irq_get_type(s, irq) & ST_EDGE_MASK;
 }
 
-inline static bool aic_irq_is_level_triggered(AicState *s, uint8_t irq)
+inline static bool aic_irq_is_level_triggered(At91Aic *s, uint8_t irq)
 {
     return !aic_irq_is_edge_triggered(s, irq);
 }
 
-inline static bool aic_irq_is_fast(AicState *s, uint8_t irq)
+inline static bool aic_irq_is_fast(At91Aic *s, uint8_t irq)
 {
     return !!((s->reg_ffsr | 0x01) & (1 << irq));
 }
 
 
-static int aic_irq_get_highest_pending(AicState *s)
+static int aic_irq_get_highest_pending(At91Aic *s)
 {
     uint32_t pending = s->reg_ipr & s->reg_imr & ~s->reg_ffsr;
     int h_irq = -1;
@@ -113,7 +113,7 @@ static int aic_irq_get_highest_pending(AicState *s)
 }
 
 
-inline static void aic_irq_stack_push(AicState *s, uint8_t irq, uint8_t pri)
+inline static void aic_irq_stack_push(At91Aic *s, uint8_t irq, uint8_t pri)
 {
     if (s->irq_stack_pos >= 8) {
         error_report("at91.aic: too many interrupts");
@@ -125,14 +125,14 @@ inline static void aic_irq_stack_push(AicState *s, uint8_t irq, uint8_t pri)
     s->irq_stack[s->irq_stack_pos].irq = pri;
 }
 
-inline static void aic_irq_stack_pop(AicState *s)
+inline static void aic_irq_stack_pop(At91Aic *s)
 {
     if (s->irq_stack_pos >= 0) {
         s->irq_stack_pos -= 1;
     }
 }
 
-inline static AicIrqStackElem *aic_irq_stack_top(AicState *s)
+inline static AicIrqStackElem *aic_irq_stack_top(At91Aic *s)
 {
     if (s->irq_stack_pos < 0) {
         return NULL;
@@ -142,7 +142,7 @@ inline static AicIrqStackElem *aic_irq_stack_top(AicState *s)
 }
 
 
-static void aic_core_irq_update(AicState *s)
+static void aic_core_irq_update(At91Aic *s)
 {
     AicIrqStackElem *current = aic_irq_stack_top(s);
     uint32_t irq_pending = s->reg_ipr & s->reg_imr;
@@ -172,7 +172,7 @@ static void aic_core_irq_update(AicState *s)
 
 static void aic_irq_handle(void *opaque, int n, int level)
 {
-    AicState *s = AT91_AIC(opaque);
+    At91Aic *s = AT91_AIC(opaque);
     const uint32_t mask = 1 << n;
     const uint32_t newbit = (!!level) << n;
     bool active = false;
@@ -206,7 +206,7 @@ static void aic_irq_handle(void *opaque, int n, int level)
 
 static uint64_t aic_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
-    AicState *s = opaque;
+    At91Aic *s = opaque;
     AicIrqStackElem *elem;
     int irq;
 
@@ -298,7 +298,7 @@ static uint64_t aic_mmio_read(void *opaque, hwaddr offset, unsigned size)
 
 static void aic_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
-    AicState *s = opaque;
+    At91Aic *s = opaque;
     int irq;
 
     if (size != 0x04) {
@@ -399,7 +399,7 @@ static const MemoryRegionOps aic_mmio_ops = {
 };
 
 
-static void aic_reset_registers(AicState *s)
+static void aic_reset_registers(At91Aic *s)
 {
     int i;
 
@@ -419,7 +419,7 @@ static void aic_reset_registers(AicState *s)
 static void aic_device_init(Object *obj)
 {
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-    AicState *s = AT91_AIC(obj);
+    At91Aic *s = AT91_AIC(obj);
 
     sysbus_init_irq(sbd, &s->irq);
     sysbus_init_irq(sbd, &s->fiq);
@@ -432,7 +432,7 @@ static void aic_device_init(Object *obj)
 
 static void aic_device_realize(DeviceState *dev, Error **errp)
 {
-    AicState *s = AT91_AIC(dev);
+    At91Aic *s = AT91_AIC(dev);
 
     aic_reset_registers(s);
     s->irq_stack_pos = -1;
@@ -441,7 +441,7 @@ static void aic_device_realize(DeviceState *dev, Error **errp)
 
 static void aic_device_reset(DeviceState *dev)
 {
-    AicState *s = AT91_AIC(dev);
+    At91Aic *s = AT91_AIC(dev);
 
     aic_reset_registers(s);
     s->irq_stack_pos = -1;
@@ -459,7 +459,7 @@ static void aic_class_init(ObjectClass *klass, void *data)
 static const TypeInfo aic_device_info = {
     .name = TYPE_AT91_AIC,
     .parent = TYPE_SYS_BUS_DEVICE,
-    .instance_size = sizeof(AicState),
+    .instance_size = sizeof(At91Aic),
     .instance_init = aic_device_init,
     .class_init = aic_class_init,
 };

@@ -179,7 +179,7 @@ static void tc_clk_stop(TcChanState *s)
     ptimer_transaction_commit(s->timer);
 }
 
-void at91_tc_set_master_clock(TcState *s, unsigned mclk)
+void at91_tc_set_master_clock(At91Tc *s, unsigned mclk)
 {
     s->mclk = mclk;
 
@@ -368,7 +368,7 @@ static void tc_chan_mmio_write(TcChanState *s, hwaddr offset, uint64_t value, un
 
 static uint64_t tc_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
-    TcState *s = opaque;
+    At91Tc *s = opaque;
 
     switch (offset) {
     case TCC0_START ... TCC0_END:
@@ -391,7 +391,7 @@ static uint64_t tc_mmio_read(void *opaque, hwaddr offset, unsigned size)
 
 static void tc_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
-    TcState *s = opaque;
+    At91Tc *s = opaque;
 
     // debug output
     // error_report("at91.tc: write access at 0x%02lx (value: 0x%02lx)", offset, value);
@@ -441,7 +441,7 @@ static const MemoryRegionOps tc_mmio_ops = {
 static void tc_device_init(Object *obj)
 {
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-    TcState *s = AT91_TC(obj);
+    At91Tc *s = AT91_TC(obj);
 
     for (int i = 0; i < AT91_TC_NUM_CHANNELS; i++) {
         s->chan[i].parent = s;
@@ -453,7 +453,7 @@ static void tc_device_init(Object *obj)
     sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->mmio);
 }
 
-static void tc_reset_registers(TcState *s)
+static void tc_reset_registers(At91Tc *s)
 {
     s->reg_bmr = 0;
 
@@ -471,13 +471,13 @@ static void tc_reset_registers(TcState *s)
 
 static void tc_device_realize(DeviceState *dev, Error **errp)
 {
-    TcState *s = AT91_TC(dev);
+    At91Tc *s = AT91_TC(dev);
     tc_reset_registers(s);
 }
 
 static void tc_device_reset(DeviceState *dev)
 {
-    TcState *s = AT91_TC(dev);
+    At91Tc *s = AT91_TC(dev);
     tc_reset_registers(s);
 }
 
@@ -492,7 +492,7 @@ static void tc_class_init(ObjectClass *klass, void *data)
 static const TypeInfo tc_device_info = {
     .name = TYPE_AT91_TC,
     .parent = TYPE_SYS_BUS_DEVICE,
-    .instance_size = sizeof(TcState),
+    .instance_size = sizeof(At91Tc),
     .instance_init = tc_device_init,
     .class_init = tc_class_init,
 };

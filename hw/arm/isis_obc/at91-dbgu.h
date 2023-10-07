@@ -25,7 +25,7 @@
 
 
 #define TYPE_AT91_DBGU "at91-dbgu"
-#define AT91_DBGU(obj) OBJECT_CHECK(DbguState, (obj), TYPE_AT91_DBGU)
+#define AT91_DBGU(obj) OBJECT_CHECK(At91Dbgu, (obj), TYPE_AT91_DBGU)
 
 
 typedef struct {
@@ -48,6 +48,6 @@ typedef struct {
     uint32_t reg_cidr;
     uint32_t reg_exid;
     uint32_t reg_fnr;
-} DbguState;
+} At91Dbgu;
 
 #endif /* HW_ARM_ISIS_OBC_DBGU_H */

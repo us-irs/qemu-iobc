@@ -46,14 +46,14 @@
 #define PMC_IRQ_MASK    0x30F
 
 
-inline static void pmc_notify_mclk_change(PmcState *s)
+inline static void pmc_notify_mclk_change(At91Pmc *s)
 {
     if (s->mclk_cb)
         s->mclk_cb(s->mclk_opaque, s->master_clock_freq);
 }
 
 
-static void pmc_update_mckr(PmcState *s)
+static void pmc_update_mckr(At91Pmc *s)
 {
     uint8_t css = s->reg_pmc_mckr & 0x03;
     bool ready = false;
@@ -125,7 +125,7 @@ static void pmc_update_mckr(PmcState *s)
 
 static uint64_t pmc_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
-    PmcState *s = opaque;
+    At91Pmc *s = opaque;
 
     switch (offset) {
     case PMC_SCSR:
@@ -172,7 +172,7 @@ static uint64_t pmc_mmio_read(void *opaque, hwaddr offset, unsigned size)
 
 static void pmc_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
-    PmcState *s = opaque;
+    At91Pmc *s = opaque;
 
     switch (offset) {
     case PMC_SCER:
@@ -253,7 +253,7 @@ static const MemoryRegionOps pmc_mmio_ops = {
     .endianness = DEVICE_NATIVE_ENDIAN,
 };
 
-static void pmc_reset_registers(PmcState *s)
+static void pmc_reset_registers(At91Pmc *s)
 {
     s->reg_pmc_scsr    = 0x03;
     s->reg_pmc_pcsr    = 0x00;
@@ -269,7 +269,7 @@ static void pmc_reset_registers(PmcState *s)
     s->reg_pmc_pllicpr = 0x00;
 }
 
-static void pmc_reset_registers_from_init_state(PmcState *s)
+static void pmc_reset_registers_from_init_state(At91Pmc *s)
 {
     pmc_reset_registers(s);
 
@@ -292,7 +292,7 @@ static void pmc_reset_registers_from_init_state(PmcState *s)
 
 static void pmc_device_realize(DeviceState *dev, Error **errp)
 {
-    PmcState *s = AT91_PMC(dev);
+    At91Pmc *s = AT91_PMC(dev);
 
     pmc_reset_registers_from_init_state(s);
     s->master_clock_freq = 0;
@@ -302,7 +302,7 @@ static void pmc_device_realize(DeviceState *dev, Error **errp)
 
 static void pmc_device_reset(DeviceState *dev)
 {
-    PmcState *s = AT91_PMC(dev);
+    At91Pmc *s = AT91_PMC(dev);
 
     /**
      * Note: Do not set clock on reset. This prevents the clock from being set
@@ -325,7 +325,7 @@ static void pmc_class_init(ObjectClass *klass, void *data)
 static void pmc_instance_init(Object *obj)
 {
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-    PmcState *s = AT91_PMC(obj);
+    At91Pmc *s = AT91_PMC(obj);
 
     sysbus_init_irq(sbd, &s->irq);
 
@@ -336,7 +336,7 @@ static void pmc_instance_init(Object *obj)
 static const TypeInfo pmc_device_info = {
     .name = TYPE_AT91_PMC,
     .parent = TYPE_SYS_BUS_DEVICE,
-    .instance_size = sizeof(PmcState),
+    .instance_size = sizeof(At91Pmc),
     .instance_init = pmc_instance_init,
     .class_init = pmc_class_init,
 };

@@ -94,12 +94,12 @@
 // register to clear the OVRES bit.
 
 
-static void update_irq(SpiState *s)
+static void update_irq(At91Spi *s)
 {
     qemu_set_irq(s->irq, !!(s->reg_sr & s->reg_imr & SR_IRQ_MASK));
 }
 
-void at91_spi_set_master_clock(SpiState *s, unsigned mclk)
+void at91_spi_set_master_clock(At91Spi *s, unsigned mclk)
 {
     s->mclk = mclk;
 }
@@ -125,7 +125,7 @@ inline static uint8_t pcs_to_nr_nopcsdec(uint8_t pcs)
     abort();
 }
 
-inline static uint8_t pcs_to_nr(SpiState *s, uint8_t pcs)
+inline static uint8_t pcs_to_nr(At91Spi *s, uint8_t pcs)
 {
     if (!(s->reg_mr & MR_MSTR))
         return 0x0F;
@@ -136,7 +136,7 @@ inline static uint8_t pcs_to_nr(SpiState *s, uint8_t pcs)
     return pcs_to_nr_nopcsdec(pcs);
 }
 
-inline static uint8_t pcnr_to_cs(SpiState *s, uint8_t pcnr)
+inline static uint8_t pcnr_to_cs(At91Spi *s, uint8_t pcnr)
 {
     if (!(s->reg_mr & MR_MSTR))
         return 0x00;
@@ -147,7 +147,7 @@ inline static uint8_t pcnr_to_cs(SpiState *s, uint8_t pcnr)
     return ~(pcnr + 1);
 }
 
-inline static uint8_t num_transmit_bits(SpiState *s, uint8_t pcnr)
+inline static uint8_t num_transmit_bits(At91Spi *s, uint8_t pcnr)
 {
     uint8_t bits = ((s->reg_csr[pcnr/4] >> 4) & 0x0F) + 8;
 
@@ -165,9 +165,9 @@ inline static uint32_t to_xfer_unit(uint8_t pcnr, uint8_t bits, uint16_t data)
 }
 
 
-inline static void xfer_master_wait_receive_finish(SpiState *s);
+inline static void xfer_master_wait_receive_finish(At91Spi *s);
 
-inline static void xfer_master_wait_receive_start_dma(SpiState *s, uint32_t n)
+inline static void xfer_master_wait_receive_start_dma(At91Spi *s, uint32_t n)
 {
     s->wait_rcv.n = n;
     s->wait_rcv.ty = AT91_SPI_WAIT_RCV_DMA;
@@ -180,7 +180,7 @@ inline static void xfer_master_wait_receive_start_dma(SpiState *s, uint32_t n)
         xfer_master_wait_receive_finish(s);
 }
 
-inline static void xfer_master_wait_receive_start_tdr(SpiState *s)
+inline static void xfer_master_wait_receive_start_tdr(At91Spi *s)
 {
     s->wait_rcv.n = 1;
     s->wait_rcv.ty = AT91_SPI_WAIT_RCV_TDR;
@@ -194,7 +194,7 @@ inline static void xfer_master_wait_receive_start_tdr(SpiState *s)
 }
 
 
-static uint32_t xfer_master_unit_to_tdr(SpiState *s, uint32_t unit)
+static uint32_t xfer_master_unit_to_tdr(At91Spi *s, uint32_t unit)
 {
     uint8_t pcnr = (unit >> 24) & 0x0F;
     if (pcnr >= 16) {
@@ -214,7 +214,7 @@ static uint32_t xfer_master_unit_to_tdr(SpiState *s, uint32_t unit)
     return pcnr_to_cs(s, pcnr) << 16 | data;
 }
 
-static uint32_t xfer_master_copy_to_rpr(SpiState *s, uint8_t *buf, uint32_t num_units, uint8_t unit_size)
+static uint32_t xfer_master_copy_to_rpr(At91Spi *s, uint8_t *buf, uint32_t num_units, uint8_t unit_size)
 {
     MemTxAttrs attrs = MEMTXATTRS_UNSPECIFIED;
     uint32_t n = num_units * unit_size;
@@ -243,7 +243,7 @@ static uint32_t xfer_master_copy_to_rpr(SpiState *s, uint8_t *buf, uint32_t num_
     return n;
 }
 
-static void xfer_master_copy_to_dma(SpiState *s, uint8_t *buf, uint32_t num_units, uint8_t unit_size)
+static void xfer_master_copy_to_dma(At91Spi *s, uint8_t *buf, uint32_t num_units, uint8_t unit_size)
 {
     uint32_t n = 0;
 
@@ -268,7 +268,7 @@ static void xfer_master_copy_to_dma(SpiState *s, uint8_t *buf, uint32_t num_unit
         s->reg_sr |= SR_OVRES;
 }
 
-static void xfer_master_read_to_dma_varps(SpiState *s)
+static void xfer_master_read_to_dma_varps(At91Spi *s)
 {
     uint32_t *buf = g_new0(uint32_t, s->wait_rcv.n);
 
@@ -287,7 +287,7 @@ static void xfer_master_read_to_dma_varps(SpiState *s)
     s->reg_rdr = tdr & 0xFFFF;
 }
 
-static void xfer_master_read_to_dma_novarps8(SpiState *s)
+static void xfer_master_read_to_dma_novarps8(At91Spi *s)
 {
     uint8_t *buf = g_new0(uint8_t, s->wait_rcv.n);
 
@@ -306,7 +306,7 @@ static void xfer_master_read_to_dma_novarps8(SpiState *s)
     s->reg_rdr = tdr & 0xFFFF;
 }
 
-static void xfer_master_read_to_dma_novarps16(SpiState *s)
+static void xfer_master_read_to_dma_novarps16(At91Spi *s)
 {
     uint16_t *buf = g_new0(uint16_t, s->wait_rcv.n);
 
@@ -325,7 +325,7 @@ static void xfer_master_read_to_dma_novarps16(SpiState *s)
     s->reg_rdr = tdr & 0xFFFF;
 }
 
-static void xfer_master_read_to_tdr(SpiState *s)
+static void xfer_master_read_to_tdr(At91Spi *s)
 {
     uint32_t unit = ((uint32_t *)s->rcvbuf.buffer)[s->wait_rcv.n - 1];
     uint32_t tdr = xfer_master_unit_to_tdr(s, unit);
@@ -335,10 +335,10 @@ static void xfer_master_read_to_tdr(SpiState *s)
     s->reg_sr |= SR_RDRF;
 }
 
-static void xfer_transmit_tdr_master_finish(SpiState *s);
-static void xfer_dma_do_tcr_master_finish(SpiState *s);
+static void xfer_transmit_tdr_master_finish(At91Spi *s);
+static void xfer_dma_do_tcr_master_finish(At91Spi *s);
 
-inline static void xfer_master_wait_receive_finish(SpiState *s)
+inline static void xfer_master_wait_receive_finish(At91Spi *s)
 {
     if (s->reg_sr & SR_RDRF) {
         s->reg_sr |= SR_OVRES;
@@ -376,7 +376,7 @@ inline static void xfer_master_wait_receive_finish(SpiState *s)
 }
 
 
-static void iox_transmit_units(SpiState *s, uint32_t *units, uint32_t n)
+static void iox_transmit_units(At91Spi *s, uint32_t *units, uint32_t n)
 {
     uint8_t *data = (uint8_t *)units;
     uint32_t len = n * sizeof(uint32_t);
@@ -391,7 +391,7 @@ static void iox_transmit_units(SpiState *s, uint32_t *units, uint32_t n)
     }
 }
 
-static uint32_t xfer_transmit_dmabuf_varps(SpiState *s, void *dmabuf, uint32_t len)
+static uint32_t xfer_transmit_dmabuf_varps(At91Spi *s, void *dmabuf, uint32_t len)
 {
     // data is 32 bit full TDR format
     uint32_t num_units = len / sizeof(uint32_t);
@@ -432,7 +432,7 @@ static uint32_t xfer_transmit_dmabuf_varps(SpiState *s, void *dmabuf, uint32_t l
     return num_units;
 }
 
-static uint32_t xfer_transmit_dmabuf_novarps(SpiState *s, void *dmabuf, uint32_t len)
+static uint32_t xfer_transmit_dmabuf_novarps(At91Spi *s, void *dmabuf, uint32_t len)
 {
     // data is 8 to 16 bit raw data, stored in either 8 or 16 bit units
 
@@ -483,7 +483,7 @@ static uint32_t xfer_transmit_dmabuf_novarps(SpiState *s, void *dmabuf, uint32_t
     return num_units;
 }
 
-inline static uint32_t xfer_transmit_dmabuf(SpiState *s, void *dmabuf, uint32_t len)
+inline static uint32_t xfer_transmit_dmabuf(At91Spi *s, void *dmabuf, uint32_t len)
 {
     if (s->reg_mr & MR_PS)
         return xfer_transmit_dmabuf_varps(s, dmabuf, len);
@@ -491,14 +491,14 @@ inline static uint32_t xfer_transmit_dmabuf(SpiState *s, void *dmabuf, uint32_t 
         return xfer_transmit_dmabuf_novarps(s, dmabuf, len);
 }
 
-static void xfer_transmit_tdr_master_finish(SpiState *s)
+static void xfer_transmit_tdr_master_finish(At91Spi *s)
 {
         s->reg_sr |= SR_TDRE;
         s->reg_sr |= SR_TXEMPTY;
         update_irq(s);
 }
 
-static void xfer_transmit_tdr(SpiState *s)
+static void xfer_transmit_tdr(At91Spi *s)
 {
     if (s->reg_mr & MR_MSTR) {              // master mode
         uint8_t pcnr = pcs_to_nr(s, (((s->reg_mr & MR_PS) ? s->reg_tdr : s->reg_mr) >> 16) & 0x0F);
@@ -534,17 +534,17 @@ static void xfer_transmit_tdr(SpiState *s)
 
 static void xfer_dma_rx_start(void *opaque)
 {
-    SpiState *s = opaque;
+    At91Spi *s = opaque;
     s->dma_rx_enabled = true;
 }
 
 static void xfer_dma_rx_stop(void *opaque)
 {
-    SpiState *s = opaque;
+    At91Spi *s = opaque;
     s->dma_rx_enabled = false;
 }
 
-static void xfer_dma_do_tcr_master_start(SpiState *s)
+static void xfer_dma_do_tcr_master_start(At91Spi *s)
 {
     uint8_t *data = g_new0(uint8_t, s->pdc.reg_tcr);
     if (!data) {
@@ -565,7 +565,7 @@ static void xfer_dma_do_tcr_master_start(SpiState *s)
     g_free(data);
 }
 
-static void xfer_dma_do_tcr_master_finish(SpiState *s)
+static void xfer_dma_do_tcr_master_finish(At91Spi *s)
 {
     s->pdc.reg_tpr += s->pdc.reg_tcr;
     s->pdc.reg_tcr = 0;
@@ -589,7 +589,7 @@ static void xfer_dma_do_tcr_master_finish(SpiState *s)
 
 static void xfer_dma_tx_start(void *opaque)
 {
-    SpiState *s = opaque;
+    At91Spi *s = opaque;
 
     if (s->dma_tx_enabled)      // might be setting TNCR/TPCR
         return;
@@ -613,12 +613,12 @@ static void xfer_dma_tx_start(void *opaque)
 
 static void xfer_dma_tx_stop(void *opaque)
 {
-    SpiState *s = opaque;
+    At91Spi *s = opaque;
     s->dma_tx_enabled = false;
 }
 
 
-static void iox_receive_data(SpiState *s, struct iox_data_frame *frame)
+static void iox_receive_data(At91Spi *s, struct iox_data_frame *frame)
 {
     if (s->wait_rcv.ty == AT91_SPI_WAIT_RCV_NONE) {
         warn_report("at91.spi: not expecting any data, dropping it");
@@ -639,7 +639,7 @@ static void iox_receive_data(SpiState *s, struct iox_data_frame *frame)
 
 static void iox_receive(struct iox_data_frame *frame, void *opaque)
 {
-    SpiState *s = opaque;
+    At91Spi *s = opaque;
 
     switch (frame->cat) {
     case IOX_CAT_DATA:
@@ -669,7 +669,7 @@ static void iox_receive(struct iox_data_frame *frame, void *opaque)
 
 static uint64_t spi_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
-    SpiState *s = opaque;
+    At91Spi *s = opaque;
 
     switch (offset) {
     case SPI_MR:
@@ -713,7 +713,7 @@ static uint64_t spi_mmio_read(void *opaque, hwaddr offset, unsigned size)
 
 static void spi_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
-    SpiState *s = opaque;
+    At91Spi *s = opaque;
 
     switch (offset) {
     case SPI_CR:
@@ -832,7 +832,7 @@ static const MemoryRegionOps spi_mmio_ops = {
 static void spi_device_init(Object *obj)
 {
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-    SpiState *s = AT91_SPI(obj);
+    At91Spi *s = AT91_SPI(obj);
 
     sysbus_init_irq(sbd, &s->irq);
 
@@ -840,7 +840,7 @@ static void spi_device_init(Object *obj)
     sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->mmio);
 }
 
-static void spi_reset_registers(SpiState *s)
+static void spi_reset_registers(At91Spi *s)
 {
     s->reg_mr     = 0x00;
     s->reg_rdr    = 0x00;
@@ -862,7 +862,7 @@ static void spi_reset_registers(SpiState *s)
 
 static void spi_device_realize(DeviceState *dev, Error **errp)
 {
-    SpiState *s = AT91_SPI(dev);
+    At91Spi *s = AT91_SPI(dev);
     spi_reset_registers(s);
 
     buffer_init(&s->rcvbuf, "at91.spi.rcvbuf");
@@ -891,7 +891,7 @@ static void spi_device_realize(DeviceState *dev, Error **errp)
 
 static void spi_device_unrealize(DeviceState *dev)
 {
-    SpiState *s = AT91_SPI(dev);
+    At91Spi *s = AT91_SPI(dev);
 
     if (s->server) {
         iox_server_free(s->server);
@@ -903,12 +903,12 @@ static void spi_device_unrealize(DeviceState *dev)
 
 static void spi_device_reset(DeviceState *dev)
 {
-    SpiState *s = AT91_SPI(dev);
+    At91Spi *s = AT91_SPI(dev);
     spi_reset_registers(s);
 }
 
 static Property spi_device_properties[] = {
-    DEFINE_PROP_STRING("socket", SpiState, socket),
+    DEFINE_PROP_STRING("socket", At91Spi, socket),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -925,7 +925,7 @@ static void spi_class_init(ObjectClass *klass, void *data)
 static const TypeInfo spi_device_info = {
     .name = TYPE_AT91_SPI,
     .parent = TYPE_SYS_BUS_DEVICE,
-    .instance_size = sizeof(SpiState),
+    .instance_size = sizeof(At91Spi),
     .instance_init = spi_device_init,
     .class_init = spi_class_init,
 };

@@ -60,7 +60,7 @@
 
 static void pio_handle_gpio_pin(void *opaque, int n, int level);
 
-static void iox_pinstate_set(PioState *s, struct iox_data_frame *frame)
+static void iox_pinstate_set(At91Pio *s, struct iox_data_frame *frame)
 {
     if (frame->len != sizeof(uint32_t)) {
         warn_report("at91.pio: invalid pin-enable/-disable command payload");
@@ -75,7 +75,7 @@ static void iox_pinstate_set(PioState *s, struct iox_data_frame *frame)
             pio_handle_gpio_pin(s, i, level);
 }
 
-static void iox_pinstate_get(PioState *s, struct iox_data_frame *frame)
+static void iox_pinstate_get(At91Pio *s, struct iox_data_frame *frame)
 {
     int status = iox_send_u32_resp(s->server, frame, s->reg_pdsr);
     if (status) {
@@ -86,7 +86,7 @@ static void iox_pinstate_get(PioState *s, struct iox_data_frame *frame)
 
 static void iox_receive(struct iox_data_frame *frame, void *opaque)
 {
-    PioState *s = opaque;
+    At91Pio *s = opaque;
 
     switch (frame->cat) {
     case IOX_CAT_PINSTATE:
@@ -104,7 +104,7 @@ static void iox_receive(struct iox_data_frame *frame, void *opaque)
 
 }
 
-static void iox_send_pin_state(PioState *s)
+static void iox_send_pin_state(At91Pio *s)
 {
     int status = iox_send_u32_new(s->server, IOX_CAT_PINSTATE, IOX_CID_PINSTATE_OUT, s->reg_pdsr);
     if (status) {
@@ -114,12 +114,12 @@ static void iox_send_pin_state(PioState *s)
 }
 
 
-inline static void pio_update_irq(PioState *s)
+inline static void pio_update_irq(At91Pio *s)
 {
     qemu_set_irq(s->irq, !!(s->reg_isr & s->reg_imr));
 }
 
-static void pio_update_pins(PioState *s)
+static void pio_update_pins(At91Pio *s)
 {
     uint32_t pdsr = s->reg_pdsr;
     uint32_t mask;
@@ -155,7 +155,7 @@ static void pio_update_pins(PioState *s)
 
 static void pio_handle_gpio_pin(void *opaque, int n, int level)
 {   // input via physical pin/pad
-    PioState *s = opaque;
+    At91Pio *s = opaque;
     uint32_t mask = 1 << n;
     uint32_t pdsr = s->reg_pdsr;
 
@@ -183,7 +183,7 @@ static void pio_handle_gpio_pin(void *opaque, int n, int level)
     qemu_set_irq(s->pin_out[n], level);
 }
 
-static void pio_handle_gpio_periph(PioState *s, int periph, int n, int level)
+static void pio_handle_gpio_periph(At91Pio *s, int periph, int n, int level)
 {   // input from peripheral output
     uint32_t mask = 1 << n;
     uint32_t pdsr = s->reg_pdsr;
@@ -230,7 +230,7 @@ static void pio_handle_gpio_periph_b(void *opaque, int n, int level)
 
 static uint64_t pio_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
-    PioState *s = opaque;
+    At91Pio *s = opaque;
     uint32_t tmp;
 
     switch (offset) {
@@ -278,7 +278,7 @@ static uint64_t pio_mmio_read(void *opaque, hwaddr offset, unsigned size)
 
 static void pio_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
-    PioState *s = opaque;
+    At91Pio *s = opaque;
 
     switch (offset) {
     case PIO_PER:
@@ -381,7 +381,7 @@ static const MemoryRegionOps pio_mmio_ops = {
 static void pio_device_init(Object *obj)
 {
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-    PioState *s = AT91_PIO(obj);
+    At91Pio *s = AT91_PIO(obj);
 
     sysbus_init_irq(sbd, &s->irq);
 
@@ -394,7 +394,7 @@ static void pio_device_init(Object *obj)
     qdev_init_gpio_in_named(DEVICE(s), pio_handle_gpio_periph_b, "periph.in.b", AT91_PIO_NUM_PINS);
 }
 
-static void pio_reset_registers(PioState *s)
+static void pio_reset_registers(At91Pio *s)
 {
     uint32_t pdsr = s->reg_pdsr;
 
@@ -416,7 +416,7 @@ static void pio_reset_registers(PioState *s)
 
 static void pio_device_realize(DeviceState *dev, Error **errp)
 {
-    PioState *s = AT91_PIO(dev);
+    At91Pio *s = AT91_PIO(dev);
 
     pio_reset_registers(s);
 
@@ -443,7 +443,7 @@ static void pio_device_realize(DeviceState *dev, Error **errp)
 
 static void pio_device_unrealize(DeviceState *dev)
 {
-    PioState *s = AT91_PIO(dev);
+    At91Pio *s = AT91_PIO(dev);
 
     if (s->server) {
         iox_server_free(s->server);
@@ -453,12 +453,12 @@ static void pio_device_unrealize(DeviceState *dev)
 
 static void pio_device_reset(DeviceState *dev)
 {
-    PioState *s = AT91_PIO(dev);
+    At91Pio *s = AT91_PIO(dev);
     pio_reset_registers(s);
 }
 
 static Property pio_device_properties[] = {
-    DEFINE_PROP_STRING("socket", PioState, socket),
+    DEFINE_PROP_STRING("socket", At91Pio, socket),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -475,7 +475,7 @@ static void pio_class_init(ObjectClass *klass, void *data)
 static const TypeInfo pio_device_info = {
     .name = TYPE_AT91_PIO,
     .parent = TYPE_SYS_BUS_DEVICE,
-    .instance_size = sizeof(PioState),
+    .instance_size = sizeof(At91Pio),
     .instance_init = pio_device_init,
     .class_init = pio_class_init,
 };

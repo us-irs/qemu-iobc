@@ -71,7 +71,7 @@
 
 static int dbgu_uart_can_receive(void *opaque)
 {
-    DbguState *s = opaque;
+    At91Dbgu *s = opaque;
 
     // FIXME(at91.dbgu.rx): What to do here?
     // - If we always return one, dbgu_uart_receive will set SR_OVRE according
@@ -88,7 +88,7 @@ static int dbgu_uart_can_receive(void *opaque)
 
 static void dbgu_uart_receive(void *opaque, const uint8_t *buf, int size)
 {
-    DbguState *s = opaque;
+    At91Dbgu *s = opaque;
 
     if (size > 1) {
         error_report("at91.dbgu: cannot receive more than one character at a time");
@@ -119,7 +119,7 @@ static void dbgu_uart_receive(void *opaque, const uint8_t *buf, int size)
 
 static uint64_t dbgu_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
-    DbguState *s = opaque;
+    At91Dbgu *s = opaque;
 
     switch (offset) {
     case DBGU_MR:
@@ -162,7 +162,7 @@ static uint64_t dbgu_mmio_read(void *opaque, hwaddr offset, unsigned size)
 
 static void dbgu_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
-    DbguState *s = opaque;
+    At91Dbgu *s = opaque;
     uint8_t ch;
 
     switch (offset) {
@@ -272,13 +272,13 @@ static const MemoryRegionOps dbgu_mmio_ops = {
 };
 
 static Property dbgu_device_properties[] = {
-    DEFINE_PROP_CHR("chardev", DbguState, chr),
-    DEFINE_PROP_UINT32("cidr", DbguState, reg_cidr, DEFAULT_CIDR),
-    DEFINE_PROP_UINT32("exid", DbguState, reg_exid, DEFAULT_EXID),
+    DEFINE_PROP_CHR("chardev", At91Dbgu, chr),
+    DEFINE_PROP_UINT32("cidr", At91Dbgu, reg_cidr, DEFAULT_CIDR),
+    DEFINE_PROP_UINT32("exid", At91Dbgu, reg_exid, DEFAULT_EXID),
     DEFINE_PROP_END_OF_LIST(),
 };
 
-static void dbgu_reset_registers(DbguState *s)
+static void dbgu_reset_registers(At91Dbgu *s)
 {
     // indicate shift register and THR empty
     s->reg_sr = SR_TXEMPTY;
@@ -296,7 +296,7 @@ static void dbgu_reset_registers(DbguState *s)
 static void dbgu_device_init(Object *obj)
 {
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-    DbguState *s = AT91_DBGU(obj);
+    At91Dbgu *s = AT91_DBGU(obj);
 
     sysbus_init_irq(sbd, &s->irq);
 
@@ -306,7 +306,7 @@ static void dbgu_device_init(Object *obj)
 
 static void dbgu_device_realize(DeviceState *dev, Error **errp)
 {
-    DbguState *s = AT91_DBGU(dev);
+    At91Dbgu *s = AT91_DBGU(dev);
 
     dbgu_reset_registers(s);
     qemu_chr_fe_set_handlers(&s->chr, dbgu_uart_can_receive, dbgu_uart_receive,
@@ -330,7 +330,7 @@ static void dbgu_class_init(ObjectClass *klass, void *data)
 static const TypeInfo dbgu_device_info = {
     .name = TYPE_AT91_DBGU,
     .parent = TYPE_SYS_BUS_DEVICE,
-    .instance_size = sizeof(DbguState),
+    .instance_size = sizeof(At91Dbgu),
     .instance_init = dbgu_device_init,
     .class_init = dbgu_class_init,
 };

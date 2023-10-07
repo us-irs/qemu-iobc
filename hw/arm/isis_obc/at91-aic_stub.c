@@ -16,7 +16,7 @@
 
 static void aicstub_irq_handle(void *opaque, int n, int level)
 {
-    AicStubState *s = opaque;
+    At91AicStub *s = opaque;
 
     s->line_state = (s->line_state & ~(1 << n)) | ((!!level) << n);
     qemu_set_irq(s->irq, !!s->line_state);
@@ -25,7 +25,7 @@ static void aicstub_irq_handle(void *opaque, int n, int level)
 static void aicstub_device_init(Object *obj)
 {
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-    AicStubState *s = AT91_AIC_STUB(obj);
+    At91AicStub *s = AT91_AIC_STUB(obj);
 
     sysbus_init_irq(sbd, &s->irq);
     qdev_init_gpio_in_named(DEVICE(s), aicstub_irq_handle, "irq-line", 32);
@@ -33,13 +33,13 @@ static void aicstub_device_init(Object *obj)
 
 static void aicstub_device_realize(DeviceState *dev, Error **errp)
 {
-    AicStubState *s = AT91_AIC_STUB(dev);
+    At91AicStub *s = AT91_AIC_STUB(dev);
     s->line_state = 0;
 }
 
 static void aicstub_device_reset(DeviceState *dev)
 {
-    AicStubState *s = AT91_AIC_STUB(dev);
+    At91AicStub *s = AT91_AIC_STUB(dev);
     s->line_state = 0;
 }
 
@@ -54,7 +54,7 @@ static void aicstub_class_init(ObjectClass *klass, void *data)
 static const TypeInfo aicstub_device_info = {
     .name = TYPE_AT91_AIC_STUB,
     .parent = TYPE_SYS_BUS_DEVICE,
-    .instance_size = sizeof(AicStubState),
+    .instance_size = sizeof(At91AicStub),
     .instance_init = aicstub_device_init,
     .class_init = aicstub_class_init,
 };

@@ -20,7 +20,7 @@
 #define AT91_BMS_INIT   0           // 0/false = EBI_NCS=, 1/true = ROM
 
 #define TYPE_AT91_MATRIX "at91-matrix"
-#define AT91_MATRIX(obj) OBJECT_CHECK(MatrixState, (obj), TYPE_AT91_MATRIX)
+#define AT91_MATRIX(obj) OBJECT_CHECK(At91Matrix, (obj), TYPE_AT91_MATRIX)
 
 typedef enum {
     AT91_BOOTMEM_ROM,               // 0x0010 0000
@@ -46,11 +46,11 @@ typedef struct {
 
     at91_bootmem_remap_cb *bootmem_cb;
     void *bootmem_opaque;
-} MatrixState;
+} At91Matrix;
 
 
 inline static void
-at91_matrix_set_bootmem_remap_callback(MatrixState *s, void *opaque, at91_bootmem_remap_cb *cbfn)
+at91_matrix_set_bootmem_remap_callback(At91Matrix *s, void *opaque, at91_bootmem_remap_cb *cbfn)
 {
     s->bootmem_cb = cbfn;
     s->bootmem_opaque = opaque;

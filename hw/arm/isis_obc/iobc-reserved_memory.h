@@ -22,31 +22,13 @@
 #define TYPE_IOBC_RESERVED_MEMORY "iobc.memory.reserved"
 
 #define IOBC_RESERVED_MEMORY(obj) \
-    OBJECT_CHECK(ReservedMemoryDeviceState, (obj), TYPE_IOBC_RESERVED_MEMORY)
+    OBJECT_CHECK(ReservedMemory, (obj), TYPE_IOBC_RESERVED_MEMORY)
 
 typedef struct {
     SysBusDevice parent_obj;
     MemoryRegion iomem;
     char *name;
     uint64_t size;
-} ReservedMemoryDeviceState;
-
-/*
- * Create a reserved memory region.
- *
- * Create a reserved memory region with the given name, base-address and size.
- * Access to this region will output the location of the incident to the log
- * and abort the emulator.
- */
-inline static void create_reserved_memory_region(const char* name, hwaddr base, hwaddr size)
-{
-    DeviceState *dev = qdev_new(TYPE_IOBC_RESERVED_MEMORY);
-
-    qdev_prop_set_string(dev, "name", name);
-    qdev_prop_set_uint64(dev, "size", size);
-    qdev_realize_and_unref(dev, NULL,  &error_abort);
-
-    sysbus_mmio_map_overlap(SYS_BUS_DEVICE(dev), 0, base, -1000);
-}
+} ReservedMemory;
 
 #endif /* HW_ARMISIS_OBC_RESERVED_MEM_H */

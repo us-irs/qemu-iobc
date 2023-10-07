@@ -32,7 +32,7 @@
 #define ISR_RES         BIT(0)
 
 
-static void update_irq(SdramcState *s)
+static void update_irq(At91Sdramc *s)
 {
     qemu_set_irq(s->irq, !!(s->reg_imr & s->reg_isr));
 }
@@ -40,7 +40,7 @@ static void update_irq(SdramcState *s)
 
 static void iox_receive(struct iox_data_frame *frame, void *opaque)
 {
-    SdramcState *s = opaque;
+    At91Sdramc *s = opaque;
 
     switch (frame->cat) {
     case IOX_CAT_FAULT:
@@ -57,7 +57,7 @@ static void iox_receive(struct iox_data_frame *frame, void *opaque)
 
 static uint64_t sdramc_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
-    SdramcState *s = opaque;
+    At91Sdramc *s = opaque;
 
     switch (offset) {
     case SDRAMC_MR:
@@ -94,7 +94,7 @@ static uint64_t sdramc_mmio_read(void *opaque, hwaddr offset, unsigned size)
 
 static void sdramc_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
-    SdramcState *s = opaque;
+    At91Sdramc *s = opaque;
 
     switch (offset) {
     case SDRAMC_MR:
@@ -147,7 +147,7 @@ static const MemoryRegionOps sdramc_mmio_ops = {
 static void sdramc_device_init(Object *obj)
 {
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-    SdramcState *s = AT91_SDRAMC(obj);
+    At91Sdramc *s = AT91_SDRAMC(obj);
 
     sysbus_init_irq(sbd, &s->irq);
 
@@ -155,7 +155,7 @@ static void sdramc_device_init(Object *obj)
     sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->mmio);
 }
 
-static void sdramc_reset_registers(SdramcState *s)
+static void sdramc_reset_registers(At91Sdramc *s)
 {
     s->reg_mr  = 0x00;
     s->reg_tr  = 0x00;
@@ -170,7 +170,7 @@ static void sdramc_reset_registers(SdramcState *s)
 
 static void sdramc_device_realize(DeviceState *dev, Error **errp)
 {
-    SdramcState *s = AT91_SDRAMC(dev);
+    At91Sdramc *s = AT91_SDRAMC(dev);
 
     sdramc_reset_registers(s);
 
@@ -197,7 +197,7 @@ static void sdramc_device_realize(DeviceState *dev, Error **errp)
 
 static void sdramc_device_unrealize(DeviceState *dev)
 {
-    SdramcState *s = AT91_SDRAMC(dev);
+    At91Sdramc *s = AT91_SDRAMC(dev);
 
     if (s->server) {
         iox_server_free(s->server);
@@ -207,12 +207,12 @@ static void sdramc_device_unrealize(DeviceState *dev)
 
 static void sdramc_device_reset(DeviceState *dev)
 {
-    SdramcState *s = AT91_SDRAMC(dev);
+    At91Sdramc *s = AT91_SDRAMC(dev);
     sdramc_reset_registers(s);
 }
 
 static Property sdramc_device_properties[] = {
-    DEFINE_PROP_STRING("socket", SdramcState, socket),
+    DEFINE_PROP_STRING("socket", At91Sdramc, socket),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -229,7 +229,7 @@ static void sdramc_class_init(ObjectClass *klass, void *data)
 static const TypeInfo sdramc_device_info = {
     .name = TYPE_AT91_SDRAMC,
     .parent = TYPE_SYS_BUS_DEVICE,
-    .instance_size = sizeof(SdramcState),
+    .instance_size = sizeof(At91Sdramc),
     .instance_init = sdramc_device_init,
     .class_init = sdramc_class_init,
 };

@@ -35,7 +35,7 @@
 #define MR_URSTIEN  (1 << 4)
 
 
-static void rstc_update_irq(RstcState *s)
+static void rstc_update_irq(At91Rstc *s)
 {
     qemu_set_irq(s->irq, (s->reg_mr & MR_URSTIEN) && (s->reg_sr & SR_URSTS));
 }
@@ -43,7 +43,7 @@ static void rstc_update_irq(RstcState *s)
 
 static uint64_t rstc_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
-    RstcState *s = opaque;
+    At91Rstc *s = opaque;
     uint32_t sr;
 
     switch (offset) {
@@ -64,7 +64,7 @@ static uint64_t rstc_mmio_read(void *opaque, hwaddr offset, unsigned size)
 
 static void rstc_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
-    RstcState *s = opaque;
+    At91Rstc *s = opaque;
 
     // check for the correct access key
     if (((value >> 24) & 0xFF) != RSTC_KEY_PASSWORD) {
@@ -114,7 +114,7 @@ static const MemoryRegionOps rstc_mmio_ops = {
 static void rstc_device_init(Object *obj)
 {
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-    RstcState *s = AT91_RSTC(obj);
+    At91Rstc *s = AT91_RSTC(obj);
 
     sysbus_init_irq(sbd, &s->irq);
 
@@ -124,7 +124,7 @@ static void rstc_device_init(Object *obj)
 
 static void rstc_device_realize(DeviceState *dev, Error **errp)
 {
-    RstcState *s = AT91_RSTC(dev);
+    At91Rstc *s = AT91_RSTC(dev);
     s->reg_sr = SR_URSTS | SR_NRSTL;    // TODO: actually implement NRST line?
     s->reg_mr = 0;
 }
@@ -139,7 +139,7 @@ static void rstc_class_init(ObjectClass *klass, void *data)
 static const TypeInfo rstc_device_info = {
     .name = TYPE_AT91_RSTC,
     .parent = TYPE_SYS_BUS_DEVICE,
-    .instance_size = sizeof(RstcState),
+    .instance_size = sizeof(At91Rstc),
     .instance_init = rstc_device_init,
     .class_init = rstc_class_init,
 };

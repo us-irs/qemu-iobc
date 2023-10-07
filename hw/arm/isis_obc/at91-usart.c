@@ -175,10 +175,10 @@ enum chmode {
 #define BRGR_FP(s)      ((s->reg_brgr & 0xFF0000) >> 16)
 
 
-static int iox_send_chars(UsartState *s, uint8_t* data, unsigned len);
+static int iox_send_chars(At91Usart *s, uint8_t* data, unsigned len);
 
 
-static void update_irq(UsartState *s)
+static void update_irq(At91Usart *s)
 {
     uint32_t csr = (s->reg_csr & 0x0f3fff) | ((s->reg_csr & BIT(24)) >> 4);
 
@@ -189,7 +189,7 @@ static void update_irq(UsartState *s)
     qemu_set_irq(s->irq, !!(csr & s->reg_imr));
 }
 
-static void update_baud_rate(UsartState *s)
+static void update_baud_rate(At91Usart *s)
 {
     unsigned baud = 0;
 
@@ -247,14 +247,14 @@ static void update_baud_rate(UsartState *s)
     s->baud = baud;
 }
 
-void at91_usart_set_master_clock(UsartState *s, unsigned mclk)
+void at91_usart_set_master_clock(At91Usart *s, unsigned mclk)
 {
     s->mclk = mclk;
     update_baud_rate(s);
 }
 
 
-static void xfer_chr_receive(UsartState *s, uint16_t chr, bool rxsynh)
+static void xfer_chr_receive(At91Usart *s, uint16_t chr, bool rxsynh)
 {
     if ((s->reg_csr & CSR_RXRDY) && s->rx_enabled) {
         s->reg_csr |= CSR_OVRE;
@@ -267,7 +267,7 @@ static void xfer_chr_receive(UsartState *s, uint16_t chr, bool rxsynh)
     update_irq(s);
 }
 
-static void xfer_receiver_next(UsartState *s)
+static void xfer_receiver_next(At91Usart *s)
 {
     if (buffer_empty(&s->rcvbuf))
         return;
@@ -281,7 +281,7 @@ static void xfer_receiver_next(UsartState *s)
     xfer_chr_receive(s, chr, false);
 }
 
-static void xfer_receiver_dma_updreg(UsartState *s)
+static void xfer_receiver_dma_updreg(At91Usart *s)
 {
     // if first DMA buffer is full, set its flag
     if (!s->pdc.reg_rcr)
@@ -301,7 +301,7 @@ static void xfer_receiver_dma_updreg(UsartState *s)
     }
 }
 
-static void xfer_receiver_dma_rcr(UsartState *s)
+static void xfer_receiver_dma_rcr(At91Usart *s)
 {
     MemTxAttrs attrs = MEMTXATTRS_UNSPECIFIED;
 
@@ -319,7 +319,7 @@ static void xfer_receiver_dma_rcr(UsartState *s)
     s->pdc.reg_rcr -= len;
 }
 
-static void xfer_receiver_dma_rhr(UsartState *s)
+static void xfer_receiver_dma_rhr(At91Usart *s)
 {
     MemTxAttrs attrs = MEMTXATTRS_UNSPECIFIED;
     uint8_t chr = s->reg_rhr & RHR_RXCHR;
@@ -335,7 +335,7 @@ static void xfer_receiver_dma_rhr(UsartState *s)
     s->reg_csr &= ~CSR_RXRDY;
 }
 
-static void __xfer_receiver_dma(UsartState *s)
+static void __xfer_receiver_dma(At91Usart *s)
 {
     // read from RHR
     if (s->reg_csr & CSR_RXRDY) {
@@ -365,7 +365,7 @@ static void __xfer_receiver_dma(UsartState *s)
     }
 }
 
-static void xfer_receiver_dma(UsartState *s)
+static void xfer_receiver_dma(At91Usart *s)
 {
     __xfer_receiver_dma(s);
     update_irq(s);
@@ -379,7 +379,7 @@ static void xfer_receiver_dma(UsartState *s)
         xfer_receiver_next(s);
 }
 
-static void xfer_chr_transmit(UsartState *s, uint16_t chr, bool txsynh)
+static void xfer_chr_transmit(At91Usart *s, uint16_t chr, bool txsynh)
 {
     if (!(s->reg_csr & CSR_TXRDY)) {
         // SPEC Writing a character in US_THR while TXRDY is low has no effect
@@ -398,7 +398,7 @@ static void xfer_chr_transmit(UsartState *s, uint16_t chr, bool txsynh)
 
 static void xfer_dma_rx_start(void *opaque)
 {
-    UsartState *s = opaque;
+    At91Usart *s = opaque;
 
     s->rx_dma_enabled = true;
     xfer_receiver_dma(s);
@@ -406,11 +406,11 @@ static void xfer_dma_rx_start(void *opaque)
 
 static void xfer_dma_rx_stop(void *opaque)
 {
-    UsartState *s = opaque;
+    At91Usart *s = opaque;
     s->rx_dma_enabled = false;
 }
 
-static int xfer_dma_tx_do_tcr(UsartState *s)
+static int xfer_dma_tx_do_tcr(At91Usart *s)
 {
     uint8_t *data = g_new0(uint8_t, s->pdc.reg_tcr);
     if (!data)
@@ -435,7 +435,7 @@ static int xfer_dma_tx_do_tcr(UsartState *s)
 
 static void xfer_dma_tx_start(void *opaque)
 {
-    UsartState *s = opaque;
+    At91Usart *s = opaque;
 
     if (s->pdc.reg_tcr) {
         int status = xfer_dma_tx_do_tcr(s);
@@ -469,7 +469,7 @@ static void xfer_dma_tx_stop(void *opaque)
 }
 
 
-static int iox_receive_data(UsartState *s, struct iox_data_frame *frame)
+static int iox_receive_data(At91Usart *s, struct iox_data_frame *frame)
 {
     bool in_progress = !buffer_empty(&s->rcvbuf);
 
@@ -495,7 +495,7 @@ static int iox_receive_data(UsartState *s, struct iox_data_frame *frame)
 
 static void iox_receive(struct iox_data_frame *frame, void *opaque)
 {
-    UsartState *s = opaque;
+    At91Usart *s = opaque;
     int status = 0;
 
     switch (frame->cat) {
@@ -538,7 +538,7 @@ static void iox_receive(struct iox_data_frame *frame, void *opaque)
     }
 }
 
-static int iox_send_chars(UsartState *s, uint8_t* data, unsigned len)
+static int iox_send_chars(At91Usart *s, uint8_t* data, unsigned len)
 {
     if (!s->server)
         return 0;
@@ -549,7 +549,7 @@ static int iox_send_chars(UsartState *s, uint8_t* data, unsigned len)
 
 static uint64_t usart_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
-    UsartState *s = opaque;
+    At91Usart *s = opaque;
 
     switch (offset) {
     case US_MR:
@@ -611,7 +611,7 @@ static uint64_t usart_mmio_read(void *opaque, hwaddr offset, unsigned size)
 
 static void usart_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
-    UsartState *s = opaque;
+    At91Usart *s = opaque;
 
     switch (offset) {
     case US_CR:
@@ -839,7 +839,7 @@ static const MemoryRegionOps usart_mmio_ops = {
 static void usart_device_init(Object *obj)
 {
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-    UsartState *s = AT91_USART(obj);
+    At91Usart *s = AT91_USART(obj);
 
     sysbus_init_irq(sbd, &s->irq);
 
@@ -847,7 +847,7 @@ static void usart_device_init(Object *obj)
     sysbus_init_mmio(sbd, &s->mmio);
 }
 
-static void usart_reset_registers(UsartState *s)
+static void usart_reset_registers(At91Usart *s)
 {
     s->rx_enabled = false;
     s->tx_enabled = false;
@@ -866,7 +866,7 @@ static void usart_reset_registers(UsartState *s)
 
 static void usart_device_realize(DeviceState *dev, Error **errp)
 {
-    UsartState *s = AT91_USART(dev);
+    At91Usart *s = AT91_USART(dev);
 
     usart_reset_registers(s);
 
@@ -896,7 +896,7 @@ static void usart_device_realize(DeviceState *dev, Error **errp)
 
 static void usart_device_unrealize(DeviceState *dev)
 {
-    UsartState *s = AT91_USART(dev);
+    At91Usart *s = AT91_USART(dev);
 
     if (s->server) {
         iox_server_free(s->server);
@@ -908,14 +908,14 @@ static void usart_device_unrealize(DeviceState *dev)
 
 static void usart_device_reset(DeviceState *dev)
 {
-    UsartState *s = AT91_USART(dev);
+    At91Usart *s = AT91_USART(dev);
 
     usart_reset_registers(s);
     buffer_reset(&s->rcvbuf);
 }
 
 static Property usart_device_properties[] = {
-    DEFINE_PROP_STRING("socket", UsartState, socket),
+    DEFINE_PROP_STRING("socket", At91Usart, socket),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -932,7 +932,7 @@ static void usart_class_init(ObjectClass *klass, void *data)
 static const TypeInfo usart_device_info = {
     .name = TYPE_AT91_USART,
     .parent = TYPE_SYS_BUS_DEVICE,
-    .instance_size = sizeof(UsartState),
+    .instance_size = sizeof(At91Usart),
     .instance_init = usart_device_init,
     .class_init = usart_class_init,
 };

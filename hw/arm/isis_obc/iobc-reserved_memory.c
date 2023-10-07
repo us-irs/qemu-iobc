@@ -20,7 +20,7 @@
 
 static uint64_t reserved_memory_read(void *opaque, hwaddr offset, unsigned size)
 {
-    ReservedMemoryDeviceState *s = IOBC_RESERVED_MEMORY(opaque);
+    ReservedMemory *s = IOBC_RESERVED_MEMORY(opaque);
     MemoryRegion *mem = &s->iomem;
 
     error_report("invalid memory access to '%s' [0x%08lx + 0x%08lx, r]", mem->name, mem->addr, offset);
@@ -29,7 +29,7 @@ static uint64_t reserved_memory_read(void *opaque, hwaddr offset, unsigned size)
 
 static void reserved_memory_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
-    ReservedMemoryDeviceState *s = IOBC_RESERVED_MEMORY(opaque);
+    ReservedMemory *s = IOBC_RESERVED_MEMORY(opaque);
     MemoryRegion *mem = &s->iomem;
 
     error_report("invalid memory access to '%s' [0x%08lx + 0x%08lx, r]", mem->name, mem->addr, offset);
@@ -48,7 +48,7 @@ static const MemoryRegionOps reserved_memory_ops = {
 
 static void reserved_memory_device_realize(DeviceState *dev, Error **errp)
 {
-    ReservedMemoryDeviceState *s = IOBC_RESERVED_MEMORY(dev);
+    ReservedMemory *s = IOBC_RESERVED_MEMORY(dev);
 
     if (s->size == 0) {
         error_setg(errp, "property 'size' not specified or zero");
@@ -65,8 +65,8 @@ static void reserved_memory_device_realize(DeviceState *dev, Error **errp)
 }
 
 static Property reserved_memory_device_props[] = {
-    DEFINE_PROP_UINT64("size", ReservedMemoryDeviceState, size, 0),
-    DEFINE_PROP_STRING("name", ReservedMemoryDeviceState, name),
+    DEFINE_PROP_UINT64("size", ReservedMemory, size, 0),
+    DEFINE_PROP_STRING("name", ReservedMemory, name),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -81,7 +81,7 @@ static void reserved_memory_device_class_init(ObjectClass *klass, void *data)
 static const TypeInfo reserved_memory_device_info = {
     .name = TYPE_IOBC_RESERVED_MEMORY,
     .parent = TYPE_SYS_BUS_DEVICE,
-    .instance_size = sizeof(ReservedMemoryDeviceState),
+    .instance_size = sizeof(ReservedMemory),
     .class_init = reserved_memory_device_class_init,
 };
 

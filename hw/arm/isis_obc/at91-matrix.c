@@ -33,13 +33,13 @@
 #define MRCR_RCB1           BIT(1)
 
 
-inline static void matrix_bootmem_remap(MatrixState *s, at91_bootmem_region target)
+inline static void matrix_bootmem_remap(At91Matrix *s, at91_bootmem_region target)
 {
     if (s->bootmem_cb)
         s->bootmem_cb(s->bootmem_opaque, target);
 }
 
-inline static void matrix_bootmem_update(MatrixState *s)
+inline static void matrix_bootmem_update(At91Matrix *s)
 {
     // RCB0: Remap Command Bit for AHB Master 0 (ARM926 Instruction)
     // RCB1: Remap Command Bit for AHB Master 1 (ARM926 Data)
@@ -68,7 +68,7 @@ inline static void matrix_bootmem_update(MatrixState *s)
 
 static uint64_t matrix_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
-    MatrixState *s = opaque;
+    At91Matrix *s = opaque;
 
     info_report("at91.matrix: read access at 0x%02lx with size: 0x%02x", offset, size);
 
@@ -104,7 +104,7 @@ static uint64_t matrix_mmio_read(void *opaque, hwaddr offset, unsigned size)
 
 static void matrix_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
-    MatrixState *s = opaque;
+    At91Matrix *s = opaque;
 
     info_report("at91.matrix: write access at 0x%02lx with size: 0x%02x [value: 0x%08lx]",
                 offset, size, value);
@@ -163,13 +163,13 @@ static const MemoryRegionOps matrix_mmio_ops = {
 
 static void matrix_device_init(Object *obj)
 {
-    MatrixState *s = AT91_MATRIX(obj);
+    At91Matrix *s = AT91_MATRIX(obj);
 
     memory_region_init_io(&s->mmio, OBJECT(s), &matrix_mmio_ops, s, "at91.matrix", 0x200);
     sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->mmio);
 }
 
-static void matrix_reset_registers(MatrixState *s)
+static void matrix_reset_registers(At91Matrix *s)
 {
     s->reg_mcfg[0] = 0x00;
     s->reg_mcfg[1] = 0x02;
@@ -196,7 +196,7 @@ static void matrix_reset_registers(MatrixState *s)
 
 static void matrix_device_realize(DeviceState *dev, Error **errp)
 {
-    MatrixState *s = AT91_MATRIX(dev);
+    At91Matrix *s = AT91_MATRIX(dev);
 
     matrix_reset_registers(s);
     s->bms = AT91_BMS_INIT;
@@ -204,7 +204,7 @@ static void matrix_device_realize(DeviceState *dev, Error **errp)
 
 static void matrix_device_reset(DeviceState *dev)
 {
-    MatrixState *s = AT91_MATRIX(dev);
+    At91Matrix *s = AT91_MATRIX(dev);
 
     matrix_reset_registers(s);
     matrix_bootmem_update(s);
@@ -221,7 +221,7 @@ static void matrix_class_init(ObjectClass *klass, void *data)
 static const TypeInfo matrix_device_info = {
     .name = TYPE_AT91_MATRIX,
     .parent = TYPE_SYS_BUS_DEVICE,
-    .instance_size = sizeof(MatrixState),
+    .instance_size = sizeof(At91Matrix),
     .instance_init = matrix_device_init,
     .class_init = matrix_class_init,
 };

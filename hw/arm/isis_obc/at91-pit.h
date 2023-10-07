@@ -22,7 +22,7 @@
 
 
 #define TYPE_AT91_PIT "at91-pit"
-#define AT91_PIT(obj) OBJECT_CHECK(PitState, (obj), TYPE_AT91_PIT)
+#define AT91_PIT(obj) OBJECT_CHECK(At91Pit, (obj), TYPE_AT91_PIT)
 
 
 typedef struct {
@@ -37,12 +37,12 @@ typedef struct {
     uint32_t reg_sr;
 
     uint32_t picnt;
-} PitState;
+} At91Pit;
 
 
 /*
  * Set/update master-clock reference value on PIT.
  */
-void at91_pit_set_master_clock(PitState *s, unsigned mclk);
+void at91_pit_set_master_clock(At91Pit *s, unsigned mclk);
 
 #endif /* HW_ARM_ISIS_OBC_PIT_H */

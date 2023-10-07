@@ -30,12 +30,12 @@
 #define IRQMASK(s)      (((s)->reg_mr >> 16) & 0x03)
 
 
-static void rtt_update_irq(RttState *s)
+static void rtt_update_irq(At91Rtt *s)
 {
     qemu_set_irq(s->irq, !!(IRQMASK(s) & s->reg_sr));
 }
 
-static void rtt_update_timer_freq(RttState *s)
+static void rtt_update_timer_freq(At91Rtt *s)
 {
     unsigned rtpres = (s->reg_mr & MR_RTPRES) ? (s->reg_mr & MR_RTPRES) : AT91_SCLK;
     unsigned freq = AT91_SCLK / rtpres;
@@ -48,7 +48,7 @@ static void rtt_update_timer_freq(RttState *s)
 
 static void rtt_timer_tick(void *opaque)
 {
-    RttState *s = opaque;
+    At91Rtt *s = opaque;
 
     s->reg_vr += 1;
     s->reg_sr |= SR_RTTINC;
@@ -64,7 +64,7 @@ static void rtt_timer_tick(void *opaque)
 
 static uint64_t rtt_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
-    RttState *s = opaque;
+    At91Rtt *s = opaque;
     uint32_t tmp;
 
     switch (offset) {
@@ -91,7 +91,7 @@ static uint64_t rtt_mmio_read(void *opaque, hwaddr offset, unsigned size)
 
 static void rtt_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
-    RttState *s = opaque;
+    At91Rtt *s = opaque;
 
     switch (offset) {
     case RTT_MR:
@@ -129,7 +129,7 @@ static const MemoryRegionOps rtt_mmio_ops = {
 static void rtt_device_init(Object *obj)
 {
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-    RttState *s = AT91_RTT(obj);
+    At91Rtt *s = AT91_RTT(obj);
 
     s->timer = ptimer_init(rtt_timer_tick, s, PTIMER_POLICY_LEGACY);
 
@@ -139,7 +139,7 @@ static void rtt_device_init(Object *obj)
     sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->mmio);
 }
 
-static void rtt_reset_registers(RttState *s)
+static void rtt_reset_registers(At91Rtt *s)
 {
     s->reg_mr = 0x8000;
     s->reg_ar = 0xFFFFFFFF;
@@ -151,7 +151,7 @@ static void rtt_reset_registers(RttState *s)
 
 static void rtt_device_realize(DeviceState *dev, Error **errp)
 {
-    RttState *s = AT91_RTT(dev);
+    At91Rtt *s = AT91_RTT(dev);
 
     ptimer_transaction_begin(s->timer);
     ptimer_set_limit(s->timer, 1, 1);
@@ -162,7 +162,7 @@ static void rtt_device_realize(DeviceState *dev, Error **errp)
 
 static void rtt_device_reset(DeviceState *dev)
 {
-    RttState *s = AT91_RTT(dev);
+    At91Rtt *s = AT91_RTT(dev);
 
     rtt_reset_registers(s);
     qemu_set_irq(s->irq, 0);
@@ -179,7 +179,7 @@ static void rtt_class_init(ObjectClass *klass, void *data)
 static const TypeInfo rtt_device_info = {
     .name = TYPE_AT91_RTT,
     .parent = TYPE_SYS_BUS_DEVICE,
-    .instance_size = sizeof(RttState),
+    .instance_size = sizeof(At91Rtt),
     .instance_init = rtt_device_init,
     .class_init = rtt_class_init,
 };

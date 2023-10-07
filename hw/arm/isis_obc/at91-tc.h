@@ -18,17 +18,17 @@
 
 
 #define TYPE_AT91_TC "at91-tc"
-#define AT91_TC(obj) OBJECT_CHECK(TcState, (obj), TYPE_AT91_TC)
+#define AT91_TC(obj) OBJECT_CHECK(At91Tc, (obj), TYPE_AT91_TC)
 
 #define AT91_TC_NUM_CHANNELS     3
 
 
-struct TcState;
-typedef struct TcState TcState;
+struct At91Tc;
+typedef struct At91Tc At91Tc;
 
 
 typedef struct {
-    TcState *parent;
+    At91Tc *parent;
 
     unsigned clk;
     ptimer_state *timer;
@@ -45,7 +45,7 @@ typedef struct {
 } TcChanState;
 
 
-struct TcState {
+struct At91Tc {
     SysBusDevice parent_obj;
 
     MemoryRegion mmio;
@@ -55,6 +55,6 @@ struct TcState {
     uint32_t reg_bmr;
 };
 
-void at91_tc_set_master_clock(TcState *s, unsigned mclk);
+void at91_tc_set_master_clock(At91Tc *s, unsigned mclk);
 
 #endif /* HW_ARM_ISIS_OBC_TC_H */

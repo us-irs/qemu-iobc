@@ -24,7 +24,7 @@
 
 
 #define TYPE_AT91_AIC "at91-aic"
-#define AT91_AIC(obj) OBJECT_CHECK(AicState, (obj), TYPE_AT91_AIC)
+#define AT91_AIC(obj) OBJECT_CHECK(At91Aic, (obj), TYPE_AT91_AIC)
 
 
 typedef struct {
@@ -54,6 +54,6 @@ typedef struct {
     int irq_stack_pos;
 
     uint32_t line_state;
-} AicState;
+} At91Aic;
 
 #endif /* HW_ARM_ISIS_OBC_AIC_H */

@@ -39,7 +39,7 @@
 #define AT91_PIO_NUM_PINS   32
 
 #define TYPE_AT91_PIO "at91-pio"
-#define AT91_PIO(obj) OBJECT_CHECK(PioState, (obj), TYPE_AT91_PIO)
+#define AT91_PIO(obj) OBJECT_CHECK(At91Pio, (obj), TYPE_AT91_PIO)
 
 
 typedef struct {
@@ -69,6 +69,6 @@ typedef struct {
     uint32_t pin_state_in;
     uint32_t pin_state_periph_a;
     uint32_t pin_state_periph_b;
-} PioState;
+} At91Pio;
 
 #endif /* HW_ARM_ISIS_OBC_PIO_H */

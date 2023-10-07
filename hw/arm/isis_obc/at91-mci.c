@@ -148,31 +148,31 @@ enum cmdr_iospcmd {
 #define BLKLEN_MULTIBLOCK_UNLIMITED   ((size_t)-1)
 
 
-static void mci_reset_registers(MciState *s);
+static void mci_reset_registers(At91Mci *s);
 
-static void mci_irq_update(MciState *s)
+static void mci_irq_update(At91Mci *s)
 {
     qemu_set_irq(s->irq, !!(s->reg_sr & s->reg_imr));
 }
 
-static void mci_update_mcck(MciState *s)
+static void mci_update_mcck(At91Mci *s)
 {
     s->mcck = s->mclk / (2 * (MR_CLKDIV(s) + 1));
 }
 
-void at91_mci_set_master_clock(MciState *s, unsigned mclk)
+void at91_mci_set_master_clock(At91Mci *s, unsigned mclk)
 {
     s->mclk = mclk;
     mci_update_mcck(s);
 }
 
-static inline SDBus *mci_get_selected_sdcard(MciState *s)
+static inline SDBus *mci_get_selected_sdcard(At91Mci *s)
 {
     return s->selected_card == 0 ? &s->sdbus0 : &s->sdbus1;
 }
 
 
-static void mci_pdc_do_read_rcr(MciState *s)
+static void mci_pdc_do_read_rcr(At91Mci *s)
 {
     SDBus *sd = mci_get_selected_sdcard(s);
 
@@ -210,7 +210,7 @@ static void mci_pdc_do_read_rcr(MciState *s)
         s->rd_bytes_left -= len;
 }
 
-static void mci_pdc_do_read(MciState *s)
+static void mci_pdc_do_read(At91Mci *s)
 {
     if (s->pdc.reg_rcr)
         mci_pdc_do_read_rcr(s);
@@ -242,7 +242,7 @@ static void mci_pdc_do_read(MciState *s)
     }
 }
 
-static void mci_pdc_do_write_tcr(MciState *s)
+static void mci_pdc_do_write_tcr(At91Mci *s)
 {
     SDBus *sd = mci_get_selected_sdcard(s);
 
@@ -277,7 +277,7 @@ static void mci_pdc_do_write_tcr(MciState *s)
     s->wr_bytes_blk = (s->wr_bytes_blk + len) % BLKR_BLKLEN(s);
 }
 
-static void mci_pdc_do_write(MciState *s)
+static void mci_pdc_do_write(At91Mci *s)
 {
     if (s->pdc.reg_tcr)
         mci_pdc_do_write_tcr(s);
@@ -316,7 +316,7 @@ static void mci_pdc_do_write(MciState *s)
 }
 
 
-static size_t mci_tr_length(MciState *s, uint32_t cmdr)
+static size_t mci_tr_length(At91Mci *s, uint32_t cmdr)
 {
     switch (CMDR_TRTYP(cmdr)) {
     case CMDR_TRTYP_MMCSD_SINGLE_BLOCK:
@@ -344,7 +344,7 @@ static size_t mci_tr_length(MciState *s, uint32_t cmdr)
     }
 }
 
-static void mci_tr_start_read(MciState *s, uint32_t cmdr)
+static void mci_tr_start_read(At91Mci *s, uint32_t cmdr)
 {
     s->rd_bytes_left = mci_tr_length(s, cmdr);
 
@@ -354,7 +354,7 @@ static void mci_tr_start_read(MciState *s, uint32_t cmdr)
         s->reg_sr |= SR_RXRDY;
 }
 
-static void mci_tr_start_write(MciState *s, uint32_t cmdr)
+static void mci_tr_start_write(At91Mci *s, uint32_t cmdr)
 {
     s->wr_bytes_left = mci_tr_length(s, cmdr);
     s->wr_bytes_blk = 0;
@@ -366,7 +366,7 @@ static void mci_tr_start_write(MciState *s, uint32_t cmdr)
         s->reg_sr |= SR_TXRDY;
 }
 
-static void mci_tr_start(MciState *s, uint32_t cmdr)
+static void mci_tr_start(At91Mci *s, uint32_t cmdr)
 {
     if (CMDR_TRDIR & cmdr)
         mci_tr_start_read(s, cmdr);
@@ -374,7 +374,7 @@ static void mci_tr_start(MciState *s, uint32_t cmdr)
         mci_tr_start_write(s, cmdr);
 }
 
-static void mci_tr_stop(MciState *s, uint32_t cmdr)
+static void mci_tr_stop(At91Mci *s, uint32_t cmdr)
 {
     // Note: Stop transmission command does not have a direction.
     //   Due to this, we also set NOTBUSY. According to spec, this flags must be
@@ -390,7 +390,7 @@ static void mci_tr_stop(MciState *s, uint32_t cmdr)
 }
 
 
-static void mci_do_command(MciState *s, uint32_t cmdr)
+static void mci_do_command(At91Mci *s, uint32_t cmdr)
 {
     SDBus *bus = mci_get_selected_sdcard(s);
     SDRequest request;
@@ -493,7 +493,7 @@ static void mci_do_command(MciState *s, uint32_t cmdr)
 }
 
 
-static uint32_t mci_rdr(MciState *s)
+static uint32_t mci_rdr(At91Mci *s)
 {
     SDBus *sd = mci_get_selected_sdcard(s);
 
@@ -541,7 +541,7 @@ static uint32_t mci_rdr(MciState *s)
     return buf;
 }
 
-static void mci_tdr(MciState *s, uint32_t data)
+static void mci_tdr(At91Mci *s, uint32_t data)
 {
     SDBus *sd = mci_get_selected_sdcard(s);
 
@@ -597,7 +597,7 @@ static void mci_tdr(MciState *s, uint32_t data)
 
 static void mci_dma_rx_start(void *opaque)
 {
-    MciState *s = opaque;
+    At91Mci *s = opaque;
     s->rx_dma_enabled = true;
 
     if (s->rd_bytes_left) {
@@ -612,13 +612,13 @@ static void mci_dma_rx_start(void *opaque)
 
 static void mci_dma_rx_stop(void *opaque)
 {
-    MciState *s = opaque;
+    At91Mci *s = opaque;
     s->rx_dma_enabled = false;
 }
 
 static void mci_dma_tx_start(void *opaque)
 {
-    MciState *s = opaque;
+    At91Mci *s = opaque;
     s->tx_dma_enabled = true;
 
     if (s->wr_bytes_left) {
@@ -633,14 +633,14 @@ static void mci_dma_tx_start(void *opaque)
 
 static void mci_dma_tx_stop(void *opaque)
 {
-    MciState *s = opaque;
+    At91Mci *s = opaque;
     s->tx_dma_enabled = false;
 }
 
 
 static void card_select_irq_handle(void *opaque, int n, int level)
 {
-    MciState *s = opaque;
+    At91Mci *s = opaque;
     uint8_t card = !level;
 
     s->selected_card = card;
@@ -649,7 +649,7 @@ static void card_select_irq_handle(void *opaque, int n, int level)
 
 static uint64_t mci_mmio_read(void *opaque, hwaddr offset, unsigned size)
 {
-    MciState *s = opaque;
+    At91Mci *s = opaque;
 
     switch (offset)  {
     case MCI_MR:
@@ -710,7 +710,7 @@ static uint64_t mci_mmio_read(void *opaque, hwaddr offset, unsigned size)
 
 static void mci_mmio_write(void *opaque, hwaddr offset, uint64_t value, unsigned size)
 {
-    MciState *s = opaque;
+    At91Mci *s = opaque;
 
     switch (offset)  {
     case MCI_CR:
@@ -852,7 +852,7 @@ static const MemoryRegionOps mci_mmio_ops = {
 static void mci_device_init(Object *obj)
 {
     SysBusDevice *sbd = SYS_BUS_DEVICE(obj);
-    MciState *s = AT91_MCI(obj);
+    At91Mci *s = AT91_MCI(obj);
 
     qbus_init(&s->sdbus0, sizeof(s->sdbus0), TYPE_SD_BUS, DEVICE(s), "sd-bus0");
     qbus_init(&s->sdbus1, sizeof(s->sdbus1), TYPE_SD_BUS, DEVICE(s), "sd-bus1");
@@ -864,7 +864,7 @@ static void mci_device_init(Object *obj)
     sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->mmio);
 }
 
-static void mci_reset_registers(MciState *s)
+static void mci_reset_registers(At91Mci *s)
 {
     s->reg_mr   = 0x00;
     s->reg_dtor = 0x00;
@@ -896,7 +896,7 @@ static void mci_reset_registers(MciState *s)
 
 static void mci_device_realize(DeviceState *dev, Error **errp)
 {
-    MciState *s = AT91_MCI(dev);
+    At91Mci *s = AT91_MCI(dev);
     BlockBackend *blk0, *blk1;
     DriveInfo *di0, *di1;
     DeviceState *sd0, *sd1;
@@ -923,7 +923,7 @@ static void mci_device_realize(DeviceState *dev, Error **errp)
 
 static void mci_device_reset(DeviceState *dev)
 {
-    MciState *s = AT91_MCI(dev);
+    At91Mci *s = AT91_MCI(dev);
     mci_reset_registers(s);
 }
 
@@ -938,7 +938,7 @@ static void mci_class_init(ObjectClass *klass, void *data)
 static const TypeInfo mci_device_info = {
     .name = TYPE_AT91_MCI,
     .parent = TYPE_SYS_BUS_DEVICE,
-    .instance_size = sizeof(MciState),
+    .instance_size = sizeof(At91Mci),
     .instance_init = mci_device_init,
     .class_init = mci_class_init,
 };

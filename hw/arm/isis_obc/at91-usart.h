@@ -58,7 +58,7 @@
 
 
 #define TYPE_AT91_USART "at91-usart"
-#define AT91_USART(obj) OBJECT_CHECK(UsartState, (obj), TYPE_AT91_USART)
+#define AT91_USART(obj) OBJECT_CHECK(At91Usart, (obj), TYPE_AT91_USART)
 
 
 typedef struct {
@@ -90,9 +90,9 @@ typedef struct {
     bool tx_enabled;
 
     At91Pdc pdc;
-} UsartState;
+} At91Usart;
 
 
-void at91_usart_set_master_clock(UsartState *s, unsigned mclk);
+void at91_usart_set_master_clock(At91Usart *s, unsigned mclk);
 
 #endif /* HW_ARM_ISIS_OBC_USART_H */

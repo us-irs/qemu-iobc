@@ -25,7 +25,7 @@
 
 
 #define TYPE_AT91_MCI "at91-mci"
-#define AT91_MCI(obj) OBJECT_CHECK(MciState, (obj), TYPE_AT91_MCI)
+#define AT91_MCI(obj) OBJECT_CHECK(At91Mci, (obj), TYPE_AT91_MCI)
 
 
 typedef struct {
@@ -63,9 +63,9 @@ typedef struct {
     At91Pdc pdc;
     bool rx_dma_enabled;
     bool tx_dma_enabled;
-} MciState;
+} At91Mci;
 
 
-void at91_mci_set_master_clock(MciState *s, unsigned mclk);
+void at91_mci_set_master_clock(At91Mci *s, unsigned mclk);
 
 #endif /* HW_ARM_ISIS_OBC_MCI_H */

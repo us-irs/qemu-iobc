@@ -52,7 +52,7 @@
 
 
 #define TYPE_AT91_SPI "at91-spi"
-#define AT91_SPI(obj) OBJECT_CHECK(SpiState, (obj), TYPE_AT91_SPI)
+#define AT91_SPI(obj) OBJECT_CHECK(At91Spi, (obj), TYPE_AT91_SPI)
 
 
 enum wait_rcv_type {
@@ -91,8 +91,8 @@ typedef struct {
     } wait_rcv;
 
     At91Pdc pdc;
-} SpiState;
+} At91Spi;
 
-void at91_spi_set_master_clock(SpiState *s, unsigned mclk);
+void at91_spi_set_master_clock(At91Spi *s, unsigned mclk);
 
 #endif /* HW_ARM_ISIS_OBC_SPI_H */
